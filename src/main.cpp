@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "spline.h"
 
 using namespace std;
 
@@ -125,29 +126,14 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
 }
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y) {
-    int prev_wp = -1;
-
-    while (s > maps_s[prev_wp + 1] && (prev_wp < (int) (maps_s.size() - 1))) {
-        prev_wp++;
-    }
-
-    int wp2 = (prev_wp + 1) % maps_x.size();
-
-    double heading = atan2((maps_y[wp2] - maps_y[prev_wp]), (maps_x[wp2] - maps_x[prev_wp]));
-    // the x,y,s along the segment
-    double seg_s = (s - maps_s[prev_wp]);
-
-    double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
-    double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
-
-    double perp_heading = heading - pi() / 2;
-
-    double x = seg_x + d * cos(perp_heading);
-    double y = seg_y + d * sin(perp_heading);
-
-    return {x, y};
-
+vector<double> getXY(double s, double d, tk::spline s_x, tk::spline s_y, tk::spline s_dx, tk::spline s_dy) {
+    double path_x = s_x(s);
+    double path_y = s_y(s);
+    double dx = s_dx(s);
+    double dy = s_dy(s);
+    double x = path_x + d * dx;
+    double y = path_y + d * dy;
+    return {x,y};
 }
 
 int main() {
@@ -187,7 +173,15 @@ int main() {
         map_waypoints_dy.push_back(d_y);
     }
 
-    h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](
+    // Splines to support conversion from s,d to x,y.
+    // Other direction is also possible but more difficult.
+    tk::spline s_x, s_y, s_dx, s_dy;
+    s_x.set_points(map_waypoints_s,map_waypoints_x);
+    s_y.set_points(map_waypoints_s,map_waypoints_y);
+    s_dx.set_points(map_waypoints_s,map_waypoints_dx);
+    s_dy.set_points(map_waypoints_s,map_waypoints_dy);
+
+    h.onMessage([&s_x, &s_y, &s_dx, &s_dy](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
@@ -195,6 +189,7 @@ int main() {
         // The 2 signifies a websocket event
         //auto sdata = string(data).substr(0, length);
         //cout << sdata << endl;
+
         if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
             auto s = hasData(data);
@@ -235,7 +230,7 @@ int main() {
                     for (int i = 0; i < 50; i++) {
                         double next_s = car_s+(i+1)*dist_inc;
                         double next_d = 4 * 1.5; // Lanes 4 meters wide. d starts in middle of road, and negative d is off-limits.
-                        vector<double> xy = getXY(next_s,next_d,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+                        vector<double> xy = getXY(next_s, next_d, s_x, s_y, s_dx, s_dy);
                         next_x_vals.push_back(xy[0]);
                         next_y_vals.push_back(xy[1]);
                     }
