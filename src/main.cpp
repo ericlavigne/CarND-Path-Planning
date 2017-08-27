@@ -194,7 +194,7 @@ int main() {
     // Start in lane 1 (0 is left, 1 is middle, 2 is right)
     int lane = 1;
     double speed_limit = 49.5; // mph
-    double ref_vel = speed_limit;
+    double ref_vel = 0.0;
 
     h.onMessage([&s_x, &s_y, &s_dx, &s_dy, &lane, &speed_limit, &ref_vel](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -238,6 +238,29 @@ int main() {
                     auto sensor_fusion = j[1]["sensor_fusion"];
 
                     int prev_size = previous_path_x.size();
+
+                    if(prev_size > 0) {
+                        car_s = end_path_s;
+                        car_d = end_path_d;
+                    }
+
+                    bool too_close = false;
+
+                    for(int i = 0; i < sensor_fusion.size(); i++) {
+                        double d = sensor_fusion[i][6];
+                        // Other car is in my lane
+                        if(d < (2+4*lane+2) && d > (2+4*lane-2)) {
+                            double vx = sensor_fusion[i][3];
+                            double vy = sensor_fusion[i][4];
+                            double check_speed = sqrt(vx*vx+vy*vy);
+                            double check_car_s = sensor_fusion[i][5];
+                            check_car_s += prev_size * 0.02 * check_speed;
+                            // Other is in front and less than 30 meters away
+                            if(check_car_s > car_s && check_car_s - car_s < 30) {
+                                too_close = true;
+                            }
+                        }
+                    }
 
                     vector<double> ptsx;
                     vector<double> ptsy;
@@ -307,6 +330,15 @@ int main() {
                     double x_add_on = 0;
 
                     for(int i = 1; i <= 50 - previous_path_x.size(); i++) {
+                        if(too_close) {
+                            ref_vel -= 0.224;
+                        } else {
+                            ref_vel += 0.224;
+                        }
+                        if(ref_vel > speed_limit) {
+                            ref_vel = speed_limit;
+                        }
+
                         double N = target_dist / (.02*ref_vel/2.24); // 2.24 converts mph to m/s
                         double x_point = x_add_on + target_x / N;
                         double y_point = traj(x_point);
