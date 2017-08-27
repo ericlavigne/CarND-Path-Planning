@@ -9,6 +9,7 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
 #include "spline.h"
+#include "track.h"
 
 using namespace std;
 
@@ -125,17 +126,6 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
 
 }
 
-// Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY(double s, double d, tk::spline s_x, tk::spline s_y, tk::spline s_dx, tk::spline s_dy) {
-    double path_x = s_x(s);
-    double path_y = s_y(s);
-    double dx = s_dx(s);
-    double dy = s_dy(s);
-    double x = path_x + d * dx;
-    double y = path_y + d * dy;
-    return {x,y};
-}
-
 //template <typename T>
 //ostream& operator<<(ostream& output, std::vector<T> const& values)
 //{
@@ -149,54 +139,15 @@ vector<double> getXY(double s, double d, tk::spline s_x, tk::spline s_y, tk::spl
 int main() {
     uWS::Hub h;
 
-    // Load up map values for waypoint's x,y,s and d normalized normal vectors
-    vector<double> map_waypoints_x;
-    vector<double> map_waypoints_y;
-    vector<double> map_waypoints_s;
-    vector<double> map_waypoints_dx;
-    vector<double> map_waypoints_dy;
-
-    // Waypoint map to read from
     string map_file_ = "../data/highway_map.csv";
-    // The max s value before wrapping around the track back to 0
-    double max_s = 6945.554;
-
-    ifstream in_map_(map_file_.c_str(), ifstream::in);
-
-    string line;
-    while (getline(in_map_, line)) {
-        istringstream iss(line);
-        double x;
-        double y;
-        float s;
-        float d_x;
-        float d_y;
-        iss >> x;
-        iss >> y;
-        iss >> s;
-        iss >> d_x;
-        iss >> d_y;
-        map_waypoints_x.push_back(x);
-        map_waypoints_y.push_back(y);
-        map_waypoints_s.push_back(s);
-        map_waypoints_dx.push_back(d_x);
-        map_waypoints_dy.push_back(d_y);
-    }
-
-    // Splines to support conversion from s,d to x,y.
-    // Other direction is also possible but more difficult.
-    tk::spline s_x, s_y, s_dx, s_dy;
-    s_x.set_points(map_waypoints_s,map_waypoints_x);
-    s_y.set_points(map_waypoints_s,map_waypoints_y);
-    s_dx.set_points(map_waypoints_s,map_waypoints_dx);
-    s_dy.set_points(map_waypoints_s,map_waypoints_dy);
+    Track track(map_file_);
 
     // Start in lane 1 (0 is left, 1 is middle, 2 is right)
     int lane = 1;
     double speed_limit = 49.5; // mph
     double ref_vel = 0.0;
 
-    h.onMessage([&s_x, &s_y, &s_dx, &s_dy, &lane, &speed_limit, &ref_vel](
+    h.onMessage([&track, &lane, &speed_limit, &ref_vel](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
@@ -288,9 +239,9 @@ int main() {
                         ptsy.push_back(ref_y);
                     }
 
-                    vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), s_x, s_y, s_dx, s_dy);
-                    vector<double> next_wp1 = getXY(car_s+60, (2+4*lane), s_x, s_y, s_dx, s_dy);
-                    vector<double> next_wp2 = getXY(car_s+90, (2+4*lane), s_x, s_y, s_dx, s_dy);
+                    vector<double> next_wp0 = track.frenet_to_xy(car_s+30, (2+4*lane));
+                    vector<double> next_wp1 = track.frenet_to_xy(car_s+60, (2+4*lane));
+                    vector<double> next_wp2 = track.frenet_to_xy(car_s+90, (2+4*lane));
 
                     ptsx.push_back(next_wp0[0]);
                     ptsx.push_back(next_wp1[0]);
