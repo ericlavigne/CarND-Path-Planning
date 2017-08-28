@@ -3,13 +3,18 @@
 
 #include <vector>
 #include <string>
+#include <fstream>
+#include <sstream>
+#include <cmath>
+#include <iostream>
 #include "spline.h"
 
 using namespace std;
 
 class Track {
 public:
-    Track(string map_file);
+    explicit Track(string map_file);
+    Track(const Track &track);
     virtual ~Track();
 
     // Transform from Frenet s,d coordinates to Cartesian x,y

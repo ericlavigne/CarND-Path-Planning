@@ -10,6 +10,7 @@
 #include "json.hpp"
 #include "spline.h"
 #include "track.h"
+#include "controller.h"
 
 using namespace std;
 
@@ -144,10 +145,13 @@ int main() {
 
     // Start in lane 1 (0 is left, 1 is middle, 2 is right)
     int lane = 1;
-    double speed_limit = 49.5; // mph
+    double speed_limit_mph = 49.5; // mph
+    double speed_limit = speed_limit_mph / 2.24;
+    double acceleration_limit = 10.0;
+    double jerk_limit = 10.0;
     double ref_vel = 0.0;
 
-    h.onMessage([&track, &lane, &speed_limit, &ref_vel](
+    h.onMessage([&track, &lane, &speed_limit, &acceleration_limit, &jerk_limit, &speed_limit_mph, &ref_vel](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
@@ -286,8 +290,8 @@ int main() {
                         } else {
                             ref_vel += 0.224;
                         }
-                        if(ref_vel > speed_limit) {
-                            ref_vel = speed_limit;
+                        if(ref_vel > speed_limit_mph) {
+                            ref_vel = speed_limit_mph;
                         }
 
                         double N = target_dist / (.02*ref_vel/2.24); // 2.24 converts mph to m/s
@@ -304,6 +308,22 @@ int main() {
                         next_x_vals.push_back(x_point);
                         next_y_vals.push_back(y_point);
                     }
+
+                    // Prepare speed vector for controller
+                    vector<double> next_speed_vals;
+                    next_speed_vals.clear();
+                    for(int i = 0; i < next_x_vals.size(); i++) {
+                        next_speed_vals.push_back(ref_vel / 2.24);
+                    }
+
+                    // Use new controller as double-check for now. Remove unnecessary code above later.
+                    //cout << "Creating controller" << endl;
+                    Controller controller(track, car_x, car_y, deg2rad(car_yaw), speed_limit, acceleration_limit, jerk_limit);
+                    //cout << "Updating path history" << endl;
+                    controller.updatePathHistory(previous_path_x,previous_path_y);
+                    //cout << "Updating trajectory" << endl;
+                    controller.updateTrajectory(next_x_vals, next_y_vals, next_speed_vals);
+                    //cout << "Finished with controller" << endl;
 
                     // define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
                     //double dist_inc = 0.4;

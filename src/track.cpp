@@ -1,8 +1,4 @@
 #include "track.h"
-#include <fstream>
-#include <sstream>
-#include <cmath>
-#include <iostream>
 
 Track::Track(string map_file) {
     vector<double> waypoints_x;
@@ -47,6 +43,17 @@ Track::Track(string map_file) {
     double endpoint_distance_y = waypoints_y[0] - waypoints_y[waypoints_y.size()-1];
     endpoint_distance = sqrt(endpoint_distance_x*endpoint_distance_x + endpoint_distance_y*endpoint_distance_y);
     circular_track = (endpoint_distance < 100);
+}
+
+Track::Track(const Track &track) {
+    this->circular_track = track.circular_track;
+    this->endpoint_distance = track.endpoint_distance;
+    this->max_waypoint_s = track.max_waypoint_s;
+    this->min_waypoint_s = track.min_waypoint_s;
+    this->s_x = track.s_x;
+    this->s_y = track.s_y;
+    this->s_dx = track.s_dx;
+    this->s_dy = track.s_dy;
 }
 
 Track::~Track() {}
