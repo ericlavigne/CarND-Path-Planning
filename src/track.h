@@ -18,7 +18,10 @@ public:
     virtual ~Track();
 
     // Transform from Frenet s,d coordinates to Cartesian x,y
-    vector<double> frenet_to_xy(double s, double d);
+    vector<double> sd_to_xy(double s, double d);
+
+    // Transform from Cartesian x,y to Frenet s,d
+    vector<double> xy_to_sd(double x, double y);
 
 private:
     tk::spline s_x;
