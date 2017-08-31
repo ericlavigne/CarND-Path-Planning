@@ -123,13 +123,19 @@ int main() {
                                 too_close = true;
                             }
                         }
-                        //double sens_x = sensor_fusion[i][1];
-                        //double sens_y = sensor_fusion[i][2];
-                        //double sens_s = sensor_fusion[i][5];
-                        //double sens_d = sensor_fusion[i][6];
+                        double sens_x = sensor_fusion[i][1];
+                        double sens_y = sensor_fusion[i][2];
+                        double sens_vx = sensor_fusion[i][3];
+                        double sens_vy = sensor_fusion[i][4];
+                        double sens_s = sensor_fusion[i][5];
+                        double sens_d = sensor_fusion[i][6];
                         //vector<double> sens_calc_sd = track.xy_to_sd(sens_x,sens_y);
                         //cout << "x=" << sens_x << " y=" << sens_y << " s=" << sens_s << " d=" << sens_d
                         //     << " :: calc s=" << sens_calc_sd[0] << " d=" << sens_calc_sd[1] << endl;
+                        //vector<double> sens_calc_sdv = track.xyv_to_sdv(sens_x,sens_y,sens_vx,sens_vy);
+                        //cout << "x=" << sens_x << " y=" << sens_y << " s=" << sens_s << " d=" << sens_d
+                        //     << " :: calc s=" << sens_calc_sdv[0] << " d=" << sens_calc_sdv[1]
+                        //     << " vs=" << sens_calc_sdv[2] << " vd=" << sens_calc_sdv[3] << endl;
                     }
 
                     vector<double> ptsx;

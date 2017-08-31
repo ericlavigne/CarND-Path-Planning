@@ -58,6 +58,7 @@ Track::Track(const Track &track) {
 
 Track::~Track() {}
 
+// Transform from Frenet s,d coordinates to Cartesian x,y
 vector<double> Track::sd_to_xy(double s, double d) {
     double path_x = s_x(s);
     double path_y = s_y(s);
@@ -68,6 +69,7 @@ vector<double> Track::sd_to_xy(double s, double d) {
     return {x,y};
 }
 
+// Transform from Cartesian x,y to Frenet s,d
 vector<double> Track::xy_to_sd(double x, double y) {
     double s_est = min_waypoint_s;
     double dist2_est = pow(s_x(s_est) - x, 2) + pow(s_y(s_est) - y, 2);
@@ -110,3 +112,30 @@ vector<double> Track::xy_to_sd(double x, double y) {
     double d_est = dx * x_diff + dy * y_diff;
     return {s_est,d_est};
 }
+
+// Transform from Frenet s,d,vs,vd coordinates to Cartesian x,y,vx,vy
+vector<double> Track::sd_to_xyv(double s, double d, double vs, double vd) {
+    double small = 0.01;
+    vector<double> xy1 = sd_to_xy(s,d);
+    double s2 = s + small * vs;
+    double d2 = d + small * vd;
+    vector<double> xy2 = sd_to_xy(s2,d2);
+    double vx = (xy2[0] - xy1[0]) * (1 / small);
+    double vy = (xy2[1] - xy1[1]) * (1 / small);
+    return {xy1[0],xy1[1], vx, vy};
+}
+
+// Transform from Cartesian x,y,vx,vy to Frenet s,d,vs,vd
+vector<double> Track::xyv_to_sdv(double x, double y, double vx, double vy) {
+    double small = 0.01;
+    vector<double> sd1 = xy_to_sd(x,y);
+    double x2 = x + small * vx;
+    double y2 = y + small * vy;
+    vector<double> sd2 = xy_to_sd(x2,y2);
+    double vs = (sd2[0] - sd1[0]) * (1 / small);
+    double vd = (sd2[1] - sd1[1]) * (1 / small);
+    return {sd1[0], sd1[1], vs, vd};
+}
+
+// TODO: Improve v accuracy by using dot product between v and d vector.
+// Current approach has outward bias during a curve and predicts slow lane shift when car moves at constant d.

@@ -23,6 +23,12 @@ public:
     // Transform from Cartesian x,y to Frenet s,d
     vector<double> xy_to_sd(double x, double y);
 
+    // Transform from Frenet s,d,vs,vd coordinates to Cartesian x,y,vx,vy
+    vector<double> sd_to_xyv(double s, double d, double vs, double vd);
+
+    // Transform from Cartesian x,y,vx,vy to Frenet s,d,vs,vd
+    vector<double> xyv_to_sdv(double x, double y, double vx, double vy);
+
 private:
     tk::spline s_x;
     tk::spline s_y;
