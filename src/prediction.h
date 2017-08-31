@@ -11,6 +11,7 @@ public:
     Prediction forward_seconds(double seconds);
     double nearest_car_distance(double s, double d);
     bool crashed(double s, double d);
+    bool touching_lane_line(double d);
 private:
     vector<double> cars_s, cars_d, cars_vs, cars_vd;
 };

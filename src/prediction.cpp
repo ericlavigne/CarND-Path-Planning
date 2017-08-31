@@ -37,3 +37,21 @@ double Prediction::nearest_car_distance(double s, double d) {
 bool Prediction::crashed(double s, double d) {
     return nearest_car_distance(s,d) < 0.1;
 }
+
+bool Prediction::touching_lane_line(double d) {
+    double car_width = 2.43;
+    double lane_width = 4;
+    int num_lanes = 3;
+    if(d < 0.5 * car_width) {
+        return true;
+    }
+    if(d > num_lanes * lane_width - 0.5 * car_width) {
+        return true;
+    }
+    for(int i = 1; i < num_lanes; i++) {
+        if(abs(lane_width * i - d) < 0.5 * car_width) {
+            return true;
+        }
+    }
+    return false;
+}
