@@ -11,6 +11,8 @@
 #include "spline.h"
 #include "track.h"
 #include "controller.h"
+#include "prediction.h"
+#include "trajectory_planner.h"
 
 using namespace std;
 
@@ -109,6 +111,8 @@ int main() {
 
                     bool too_close = false;
 
+                    vector<double> cars_s(0), cars_d(0), cars_vs(0), cars_vd(0);
+
                     for(int i = 0; i < sensor_fusion.size(); i++) {
                         double d = sensor_fusion[i][6];
                         // Other car is in my lane
@@ -132,10 +136,14 @@ int main() {
                         //vector<double> sens_calc_sd = track.xy_to_sd(sens_x,sens_y);
                         //cout << "x=" << sens_x << " y=" << sens_y << " s=" << sens_s << " d=" << sens_d
                         //     << " :: calc s=" << sens_calc_sd[0] << " d=" << sens_calc_sd[1] << endl;
-                        //vector<double> sens_calc_sdv = track.xyv_to_sdv(sens_x,sens_y,sens_vx,sens_vy);
+                        vector<double> sens_calc_sdv = track.xyv_to_sdv(sens_x,sens_y,sens_vx,sens_vy);
                         //cout << "x=" << sens_x << " y=" << sens_y << " s=" << sens_s << " d=" << sens_d
                         //     << " :: calc s=" << sens_calc_sdv[0] << " d=" << sens_calc_sdv[1]
                         //     << " vs=" << sens_calc_sdv[2] << " vd=" << sens_calc_sdv[3] << endl;
+                        cars_s.push_back(sens_calc_sdv[0]);
+                        cars_d.push_back(sens_calc_sdv[1]);
+                        cars_vs.push_back(sens_calc_sdv[2]);
+                        cars_vd.push_back(sens_calc_sdv[3]);
                     }
 
                     vector<double> ptsx;
@@ -229,6 +237,30 @@ int main() {
                         next_x_vals.push_back(x_point);
                         next_y_vals.push_back(y_point);
                     }
+
+                    // Initialize Prediction
+                    Prediction current_prediction(cars_s,cars_d,cars_vs,cars_vd);
+
+                    // Move prediction further in time to match end of previous_path
+                    Prediction end_of_previous_path_prediction = current_prediction.forward_seconds(previous_path_x.size() * 0.02);
+
+                    // Initialize Trajectory
+                    double end_of_prev_x = car_x;
+                    double end_of_prev_y = car_y;
+                    double end_of_prev_vx = 0;
+                    double end_of_prev_vy = 0;
+                    if(previous_path_x.size() > 2) {
+                        end_of_prev_x = previous_path_x[previous_path_x.size() - 1];
+                        end_of_prev_y = previous_path_y[previous_path_x.size() - 1];
+                        double before_end_of_prev_x = previous_path_x[previous_path_x.size() - 2];
+                        double before_end_of_prev_y = previous_path_y[previous_path_x.size() - 2];
+                        end_of_prev_vx = (end_of_prev_x - before_end_of_prev_x) / 0.02;
+                        end_of_prev_vy = (end_of_prev_y - before_end_of_prev_y) / 0.02;
+                    }
+                    vector<double> end_of_prev_sdv = track.xyv_to_sdv(end_of_prev_x,end_of_prev_y,end_of_prev_vx,end_of_prev_vy);
+                    TrajectoryPlanner trajectory_planner(end_of_previous_path_prediction,
+                                                         end_of_prev_sdv[0], end_of_prev_sdv[1],
+                                                         end_of_prev_sdv[2], end_of_prev_sdv[3]);
 
                     // Prepare speed vector for controller
                     vector<double> next_speed_vals;
