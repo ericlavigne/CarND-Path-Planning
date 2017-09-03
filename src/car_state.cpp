@@ -1,17 +1,19 @@
 #include "car_state.h"
 #include <string>
 #include <cmath>
+#include <sstream>
+#include <iomanip>
 
-CarState::CarState(double s_, double d_, double vs_, double vd_, double penalty_, double lane_line_seconds_, double time_)
-: s(s_), d(d_), vs(vs_), vd(vd_), penalty(penalty_), lane_line_seconds(lane_line_seconds_), time(time_) {}
+CarState::CarState(double s_, double d_, double vs_, double vd_,
+                   double speed_limit_, double penalty_, double lane_line_seconds_, double time_)
+        : s(s_), d(d_), vs(vs_), vd(vd_), speed_limit(speed_limit_),
+          penalty(penalty_), lane_line_seconds(lane_line_seconds_), time(time_) {}
 
 double CarState::value_estimate(double total_time) {
-    double speed_limit = 50; // m/s - probably wrong. shouldn't be duplicated here.
     return s + (total_time - time) * speed_limit - penalty;
 }
 
 vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
-    double max_speed = 50; // mph - TODO: should get this from trajectory planner
     // List d,vd pairs for next states
     vector<double> next_d_values(0);
     vector<double> next_vd_values(0);
@@ -68,11 +70,11 @@ vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
     // Forward acceleration options: +10, 0, or -10 m/s2 limited by max speed and min speed (max/2)
     vector<double> next_vs_values(0);
     next_vs_values.push_back(vs);
-    if(max_speed > vs + 0.1) {
-        next_vs_values.push_back(min(max_speed, vs + delta_t * 10));
+    if(speed_limit > vs + 0.1) {
+        next_vs_values.push_back(min(speed_limit, vs + delta_t * 10));
     }
-    if(max_speed / 2 < vs - 0.1) {
-        next_vs_values.push_back(max(max_speed / 2, vs - delta_t * 10));
+    if(speed_limit / 2 < vs - 0.1) {
+        next_vs_values.push_back(max(speed_limit / 2, vs - delta_t * 10));
     }
     // Create new car states for each combination of d,vd and vs
     vector<CarState> result;
@@ -100,7 +102,7 @@ vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
             if(next_lane_line_seconds > 2.8) {
                 next_penalty += 2.0 * delta_t;
             }
-            CarState car(next_s, next_d, next_vs, next_vd, next_penalty, next_lane_line_seconds, time + delta_t);
+            CarState car(next_s, next_d, next_vs, next_vd, speed_limit, next_penalty, next_lane_line_seconds, time + delta_t);
             result.push_back(car);
         }
     }
@@ -125,4 +127,14 @@ string CarState::key() {
            + " d:" + to_string(d10 / 10) + "." + to_string(d10 % 10)
            + " vs:" + to_string(approx_vs)
            + " vd:" + (vd10 < 0 ? "-" : "") + to_string(abs_vd10 / 10) + "." + to_string(abs_vd10 % 10);
+}
+
+string CarState::show() {
+    ostringstream stream;
+    stream << "<CarState |";
+    stream << setprecision(4) << " s:" << s;
+    stream << setprecision(3) << " d:" << d << " vs:" << vs << " vd:" << vd;
+    stream << setprecision(2) << " lane_sec:" << lane_line_seconds;
+    stream << " >";
+    return stream.str();
 }

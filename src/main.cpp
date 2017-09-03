@@ -260,7 +260,8 @@ int main() {
                     vector<double> end_of_prev_sdv = track.xyv_to_sdv(end_of_prev_x,end_of_prev_y,end_of_prev_vx,end_of_prev_vy);
                     TrajectoryPlanner trajectory_planner(end_of_previous_path_prediction,
                                                          end_of_prev_sdv[0], end_of_prev_sdv[1],
-                                                         end_of_prev_sdv[2], end_of_prev_sdv[3]);
+                                                         end_of_prev_sdv[2], end_of_prev_sdv[3],
+                                                         speed_limit);
 
                     // Prepare speed vector for controller
                     vector<double> next_speed_vals;
