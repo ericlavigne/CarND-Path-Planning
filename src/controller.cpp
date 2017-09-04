@@ -198,9 +198,13 @@ void Controller::recalculatePath() {
     for(int i = 0; i < path_x.size(); i++) {
         double x = path_x[i];
         double y = path_y[i];
-        path_x[i] = x * cos(ref_yaw) - y * sin(ref_yaw) + ref_x;
-        path_y[i] = x * sin(ref_yaw) + y * cos(ref_yaw) + ref_y;
-
+        if(i < prev_x.size()) {
+            path_x[i] = prev_x[i];
+            path_y[i] = prev_y[i];
+        } else {
+            path_x[i] = x * cos(ref_yaw) - y * sin(ref_yaw) + ref_x;
+            path_y[i] = x * sin(ref_yaw) + y * cos(ref_yaw) + ref_y;
+        }
         cout << "    car x:" << x << " y:" << y << "  global x:" << path_x[i] << " y:" << path_y[i] << endl;
     }
     cout << "Controller::recalculatePath end" << endl;
