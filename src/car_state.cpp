@@ -111,6 +111,10 @@ vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
             if(next_lane_line_seconds > 2.8) {
                 next_penalty += 2.0 * delta_t;
             }
+            double off_road_distance = prediction.distance_from_drivable_region(next_d);
+            if(off_road_distance > 0.01) {
+                next_penalty += 200 + off_road_distance * 20;
+            }
             CarState car(next_s, next_d, next_vs, next_vd, speed_limit, next_penalty,
                          next_lane_line_seconds, time + delta_t, lookahead_time, old_key);
             result.push_back(car);

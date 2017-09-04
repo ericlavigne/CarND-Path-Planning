@@ -39,9 +39,6 @@ bool Prediction::crashed(double s, double d) {
 }
 
 bool Prediction::touching_lane_line(double d) {
-    double car_width = 2.43;
-    double lane_width = 4;
-    int num_lanes = 3;
     if(d < 0.5 * car_width) {
         return true;
     }
@@ -54,4 +51,14 @@ bool Prediction::touching_lane_line(double d) {
         }
     }
     return false;
+}
+
+double Prediction::distance_from_drivable_region(double d) {
+    if(d < 0.5 * car_width) {
+        return car_width * 0.5 - d;
+    } else if(d > num_lanes * lane_width - 0.5 * car_width) {
+        return d - (num_lanes * lane_width - 0.5 * car_width);
+    } else {
+        return 0.0;
+    }
 }
