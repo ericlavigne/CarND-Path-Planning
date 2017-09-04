@@ -74,7 +74,7 @@ int main() {
 
             auto s = hasData(data);
 
-            //cout << "Receiving message: " << s << endl;
+            cout << endl << "Receiving message: " << s << endl << endl;
 
             if (s != "") {
                 auto j = json::parse(s);
@@ -257,18 +257,43 @@ int main() {
                         end_of_prev_vx = (end_of_prev_x - before_end_of_prev_x) / 0.02;
                         end_of_prev_vy = (end_of_prev_y - before_end_of_prev_y) / 0.02;
                     }
+                    cout << "End of prev (" << previous_path_x.size() << ") x:" << end_of_prev_x
+                         << " y:" << end_of_prev_y << " vx:" << end_of_prev_vx << " vy:" << end_of_prev_vy << endl;
+
                     vector<double> end_of_prev_sdv = track.xyv_to_sdv(end_of_prev_x,end_of_prev_y,end_of_prev_vx,end_of_prev_vy);
+                    cout << "End of prev s:" << end_of_prev_sdv[0] << " d:" << end_of_prev_sdv[1]
+                         << " vs:" << end_of_prev_sdv[2] << " vd:" << end_of_prev_sdv[3] << endl;
+                    double lookahead_seconds = 2;
+                    double delta_t = 0.5;
                     TrajectoryPlanner trajectory_planner(end_of_previous_path_prediction,
                                                          end_of_prev_sdv[0], end_of_prev_sdv[1],
                                                          end_of_prev_sdv[2], end_of_prev_sdv[3],
-                                                         speed_limit);
+                                                         speed_limit, lookahead_seconds, delta_t);
+                    trajectory_planner.calculate(0.1);
+                    vector<double> next_s_vals = trajectory_planner.pathS();
+                    vector<double> next_d_vals = trajectory_planner.pathD();
+                    vector<double> next_speed_vals = trajectory_planner.pathV();
+                    next_x_vals.clear();
+                    next_y_vals.clear();
+                    cout << "Trajectory s/d/v:" << endl;
+                    for(int i = 0; i < next_s_vals.size(); i++) {
+                        cout << "    " << next_s_vals[i] << "    " << next_d_vals[i] << "    " << next_speed_vals[i] << endl;
+                    }
+                    cout << "Car x:" << car_x << " y:" << car_y << endl;
+                    cout << "Trajectory x/y:" << endl;
+                    for(int i = 0; i < next_s_vals.size(); i++) {
+                        vector<double> next_xy = track.sd_to_xy(next_s_vals[i], next_d_vals[i]);
+                        next_x_vals.push_back(next_xy[0]);
+                        next_y_vals.push_back(next_xy[1]);
+                        cout << "    " << next_xy[0] << "    " << next_xy[1] << endl;
+                    }
 
                     // Prepare speed vector for controller
-                    vector<double> next_speed_vals;
-                    next_speed_vals.clear();
-                    for(int i = 0; i < next_x_vals.size(); i++) {
-                        next_speed_vals.push_back(ref_vel / 2.24);
-                    }
+                    //vector<double> next_speed_vals;
+                    //next_speed_vals.clear();
+                    //for(int i = 0; i < next_x_vals.size(); i++) {
+                    //    next_speed_vals.push_back(ref_vel / 2.24);
+                    //}
 
                     // Use new controller as double-check for now. Remove unnecessary code above later.
                     //cout << "Creating controller" << endl;
@@ -290,11 +315,11 @@ int main() {
                     //}
 
                     json msgJson;
-                    msgJson["next_x"] = next_x_vals;
-                    msgJson["next_y"] = next_y_vals;
+                    msgJson["next_x"] = controller.getPathX();  //next_x_vals;
+                    msgJson["next_y"] = controller.getPathY(); // next_y_vals;
                     auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
-                    //cout << "Sending message: " << msg << endl;
+                    cout << endl << "Sending message: " << msg << endl << endl;
 
                     //this_thread::sleep_for(chrono::milliseconds(1000));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);

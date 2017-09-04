@@ -1,16 +1,24 @@
 #include "car_state.h"
-#include <string>
 #include <cmath>
 #include <sstream>
 #include <iomanip>
 
 CarState::CarState(double s_, double d_, double vs_, double vd_,
-                   double speed_limit_, double penalty_, double lane_line_seconds_, double time_)
+                   double speed_limit_, double penalty_, double lane_line_seconds_,
+                   double time_, double lookahead_time_, string came_from_key_)
         : s(s_), d(d_), vs(vs_), vd(vd_), speed_limit(speed_limit_),
-          penalty(penalty_), lane_line_seconds(lane_line_seconds_), time(time_) {}
+          penalty(penalty_), lane_line_seconds(lane_line_seconds_),
+          time(time_), lookahead_time(lookahead_time_), came_from_key(came_from_key_) {}
 
-double CarState::value_estimate(double total_time) {
-    return s + (total_time - time) * speed_limit - penalty;
+CarState::CarState(const CarState &car)
+        : s(car.s), d(car.d), vs(car.vs), vd(car.vd), speed_limit(car.speed_limit),
+          penalty(car.penalty), lane_line_seconds(car.lane_line_seconds),
+          time(car.time), lookahead_time(car.lookahead_time), came_from_key(car.came_from_key) {}
+
+CarState::CarState() {}
+
+double CarState::value_estimate() const {
+    return s + (lookahead_time - time) * speed_limit - penalty;
 }
 
 vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
@@ -78,6 +86,7 @@ vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
     }
     // Create new car states for each combination of d,vd and vs
     vector<CarState> result;
+    string old_key = key();
     for(double next_vs : next_vs_values) {
         double next_s = s + 0.5 * delta_t * (vs + next_vs);
         for(int i = 0; i < next_d_values.size(); i++) {
@@ -102,7 +111,8 @@ vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
             if(next_lane_line_seconds > 2.8) {
                 next_penalty += 2.0 * delta_t;
             }
-            CarState car(next_s, next_d, next_vs, next_vd, speed_limit, next_penalty, next_lane_line_seconds, time + delta_t);
+            CarState car(next_s, next_d, next_vs, next_vd, speed_limit, next_penalty,
+                         next_lane_line_seconds, time + delta_t, lookahead_time, old_key);
             result.push_back(car);
         }
     }
@@ -137,4 +147,9 @@ string CarState::show() {
     stream << setprecision(2) << " lane_sec:" << lane_line_seconds;
     stream << " >";
     return stream.str();
+}
+
+bool CarState::operator<(const CarState& rhs) const
+{
+    return value_estimate() < rhs.value_estimate();
 }
