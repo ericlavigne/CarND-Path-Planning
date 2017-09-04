@@ -84,7 +84,7 @@ void TrajectoryPlanner::calculate(double calc_time_limit_seconds) {
 }
 
 vector<CarState> TrajectoryPlanner::path() {
-    cout << "Started TrajectoryPlanner::path" << endl;
+    //cout << "Started TrajectoryPlanner::path" << endl;
     vector<CarState> result;
     CarState current = best;
     while(true) {
@@ -93,7 +93,7 @@ vector<CarState> TrajectoryPlanner::path() {
             current = closedStates[current.came_from_key];
         } else {
             reverse(result.begin(), result.end());
-            cout << "Finished TrajectoryPlanner::path" << endl;
+            //cout << "Finished TrajectoryPlanner::path" << endl;
             return result;
         }
     }
