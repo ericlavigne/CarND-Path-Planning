@@ -128,21 +128,13 @@ void Controller::recalculatePath() {
         traj_car_y.push_back((shift_x * sin(0-ref_yaw) + shift_y * cos(0-ref_yaw)));
         //cout << "    global x:" << traj_x[i] << " y:" << traj_y[i] << "  car x:" << traj_car_x[i] << " y:" << traj_car_y[i] << endl;
     }
-    //cout << "Building splines with " << traj_car_x.size() << " x values" << endl;
 
-    //cout << "Contents of traj_car_x:" << endl;
-    //for(int i = 0; i < traj_car_x.size(); i++) {
-    //    cout << "  " << traj_car_x[i];
-    //    if(i % 50 == 49) {
-    //        cout << endl;
-    //    }
-    //}
-    //cout << endl << endl;
-
+    //cout << "Creating trajectory spline with " << traj_x.size() << " points in controller" << endl;
     tk::spline spline_x_to_y;
     tk::spline spline_x_to_speed;
     spline_x_to_y.set_points(traj_car_x,traj_car_y);
     spline_x_to_speed.set_points(traj_car_x,traj_speed);
+    //cout << "Finished creating trajectory splines in controller" << endl;
     //cout << "Splines built" << endl;
     double lookahead_seconds = 1;
     //cout << "Augment path from " << path_x.size() << " to " << path_length << " elements." << endl;

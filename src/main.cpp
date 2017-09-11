@@ -37,16 +37,6 @@ string hasData(string s) {
     return "";
 }
 
-//template <typename T>
-//ostream& operator<<(ostream& output, std::vector<T> const& values)
-//{
-//    for (auto const& value : values)
-//    {
-//        output << value << std::endl;
-//    }
-//    return output;
-//}
-
 int main() {
     uWS::Hub h;
 
@@ -59,9 +49,8 @@ int main() {
     double speed_limit = speed_limit_mph / 2.24;
     double acceleration_limit = 10.0;
     double jerk_limit = 10.0;
-    double ref_vel = 0.0;
 
-    h.onMessage([&track, &lane, &speed_limit, &acceleration_limit, &jerk_limit, &speed_limit_mph, &ref_vel](
+    h.onMessage([&track, &lane, &speed_limit, &acceleration_limit, &jerk_limit, &speed_limit_mph](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
@@ -109,24 +98,10 @@ int main() {
                         car_d = end_path_d;
                     }
 
-                    bool too_close = false;
-
                     vector<double> cars_s(0), cars_d(0), cars_vs(0), cars_vd(0);
 
                     for(int i = 0; i < sensor_fusion.size(); i++) {
                         double d = sensor_fusion[i][6];
-                        // Other car is in my lane
-                        if(d < (2+4*lane+2) && d > (2+4*lane-2)) {
-                            double vx = sensor_fusion[i][3];
-                            double vy = sensor_fusion[i][4];
-                            double check_speed = sqrt(vx*vx+vy*vy);
-                            double check_car_s = sensor_fusion[i][5];
-                            check_car_s += prev_size * 0.02 * check_speed;
-                            // Other is in front and less than 30 meters away
-                            if(check_car_s > car_s && check_car_s - car_s < 30) {
-                                too_close = true;
-                            }
-                        }
                         double sens_x = sensor_fusion[i][1];
                         double sens_y = sensor_fusion[i][2];
                         double sens_vx = sensor_fusion[i][3];
@@ -144,98 +119,6 @@ int main() {
                         cars_d.push_back(sens_calc_sdv[1]);
                         cars_vs.push_back(sens_calc_sdv[2]);
                         cars_vd.push_back(sens_calc_sdv[3]);
-                    }
-
-                    vector<double> ptsx;
-                    vector<double> ptsy;
-
-                    double ref_x = car_x;
-                    double ref_y = car_y;
-                    double ref_yaw = deg2rad(car_yaw);
-
-                    if(prev_size < 2) {
-                        double prev_car_x = car_x - cos(ref_yaw);
-                        double prev_car_y = car_y - sin(ref_yaw);
-                        ptsx.push_back(prev_car_x);
-                        ptsx.push_back(car_x);
-                        ptsy.push_back(prev_car_y);
-                        ptsy.push_back(car_y);
-                    } else {
-                        ref_x = previous_path_x[prev_size-1];
-                        ref_y = previous_path_y[prev_size-1];
-                        double ref_x_prev = previous_path_x[prev_size-2];
-                        double ref_y_prev = previous_path_y[prev_size-2];
-                        ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
-                        ptsx.push_back(ref_x_prev);
-                        ptsx.push_back(ref_x);
-                        ptsy.push_back(ref_y_prev);
-                        ptsy.push_back(ref_y);
-                    }
-
-                    vector<double> next_wp0 = track.sd_to_xy(car_s+30, (2+4*lane));
-                    vector<double> next_wp1 = track.sd_to_xy(car_s+60, (2+4*lane));
-                    vector<double> next_wp2 = track.sd_to_xy(car_s+90, (2+4*lane));
-
-                    ptsx.push_back(next_wp0[0]);
-                    ptsx.push_back(next_wp1[0]);
-                    ptsx.push_back(next_wp2[0]);
-
-                    ptsy.push_back(next_wp0[1]);
-                    ptsy.push_back(next_wp1[1]);
-                    ptsy.push_back(next_wp2[1]);
-
-                    //cout << "Original ptsx:" << endl << ptsx << endl;
-
-                    // Convert ptsx/y to car's coordinate system
-                    for(int i = 0; i < ptsx.size(); i++) {
-                        double shift_x = ptsx[i] - ref_x;
-                        double shift_y = ptsy[i] - ref_y;
-                        ptsx[i] = (shift_x * cos(0-ref_yaw) - shift_y * sin(0-ref_yaw));
-                        ptsy[i] = (shift_x * sin(0-ref_yaw) + shift_y * cos(0-ref_yaw));
-                    }
-
-                    //cout << "Creating spline with" << endl << "   ptsx: " << ptsx << endl << "   ptsy: " << ptsy << endl;
-                    tk::spline traj;
-                    traj.set_points(ptsx,ptsy);
-
-                    vector<double> next_x_vals;
-                    vector<double> next_y_vals;
-
-                    // Keep previously generated points
-                    for(int i = 0; i < previous_path_x.size(); i++) {
-                        next_x_vals.push_back(previous_path_x[i]);
-                        next_y_vals.push_back(previous_path_y[i]);
-                    }
-
-                    // Determine distance between points
-                    double target_x = 30.0;
-                    double target_y = traj(target_x);
-                    double target_dist = sqrt(target_x * target_x + target_y * target_y);
-                    double x_add_on = 0;
-
-                    for(int i = 1; i <= 50 - previous_path_x.size(); i++) {
-                        if(too_close) {
-                            ref_vel -= 0.224;
-                        } else {
-                            ref_vel += 0.224;
-                        }
-                        if(ref_vel > speed_limit_mph) {
-                            ref_vel = speed_limit_mph;
-                        }
-
-                        double N = target_dist / (.02*ref_vel/2.24); // 2.24 converts mph to m/s
-                        double x_point = x_add_on + target_x / N;
-                        double y_point = traj(x_point);
-                        x_add_on = x_point;
-                        double x_ref = x_point;
-                        double y_ref = y_point;
-
-                        // Shift back to map coordinates
-                        x_point = x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw) + ref_x;
-                        y_point = x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw) + ref_y;
-
-                        next_x_vals.push_back(x_point);
-                        next_y_vals.push_back(y_point);
                     }
 
                     // Initialize Prediction
@@ -263,6 +146,8 @@ int main() {
                     vector<double> end_of_prev_sdv = track.xyv_to_sdv(end_of_prev_x,end_of_prev_y,end_of_prev_vx,end_of_prev_vy);
                     //cout << "End of prev s:" << end_of_prev_sdv[0] << " d:" << end_of_prev_sdv[1]
                     //     << " vs:" << end_of_prev_sdv[2] << " vd:" << end_of_prev_sdv[3] << endl;
+
+                    // Create and use trajectory planner
                     double lookahead_seconds = 2;
                     double delta_t = 0.5;
                     TrajectoryPlanner trajectory_planner(end_of_previous_path_prediction,
@@ -273,13 +158,16 @@ int main() {
                     vector<double> next_s_vals = trajectory_planner.pathS();
                     vector<double> next_d_vals = trajectory_planner.pathD();
                     vector<double> next_speed_vals = trajectory_planner.pathV();
-                    next_x_vals.clear();
-                    next_y_vals.clear();
+
+                    // Print out trajectory
                     cout << "Trajectory s/d/v:" << endl;
                     for(int i = 0; i < next_s_vals.size(); i++) {
                         cout << "    " << next_s_vals[i] << "    " << next_d_vals[i] << "    " << next_speed_vals[i] << endl;
                     }
                     cout << "EndOfPrev x:" << end_of_prev_x << " y:" << end_of_prev_y << endl;
+
+                    // Convert trajectory from s,d to x,y
+                    vector<double> next_x_vals(0), next_y_vals(0);
                     cout << "Trajectory x/y:" << endl;
                     for(int i = 0; i < next_s_vals.size(); i++) {
                         vector<double> next_xy = track.sd_to_xy(next_s_vals[i], next_d_vals[i]);
@@ -288,14 +176,6 @@ int main() {
                         cout << "    " << next_xy[0] << "    " << next_xy[1] << endl;
                     }
 
-                    // Prepare speed vector for controller
-                    //vector<double> next_speed_vals;
-                    //next_speed_vals.clear();
-                    //for(int i = 0; i < next_x_vals.size(); i++) {
-                    //    next_speed_vals.push_back(ref_vel / 2.24);
-                    //}
-
-                    // Use new controller as double-check for now. Remove unnecessary code above later.
                     //cout << "Creating controller" << endl;
                     Controller controller(track, car_x, car_y, deg2rad(car_yaw), speed_limit, acceleration_limit, jerk_limit);
                     //cout << "Updating path history" << endl;
@@ -304,19 +184,9 @@ int main() {
                     controller.updateTrajectory(next_x_vals, next_y_vals, next_speed_vals);
                     //cout << "Finished with controller" << endl;
 
-                    // define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-                    //double dist_inc = 0.4;
-                    //for (int i = 0; i < 50; i++) {
-                    //    double next_s = car_s+(i+1)*dist_inc;
-                    //    double next_d = 4 * 1.5; // Lanes 4 meters wide. d starts in middle of road, and negative d is off-limits.
-                    //    vector<double> xy = getXY(next_s, next_d, s_x, s_y, s_dx, s_dy);
-                    //    next_x_vals.push_back(xy[0]);
-                    //    next_y_vals.push_back(xy[1]);
-                    //}
-
                     json msgJson;
-                    msgJson["next_x"] = controller.getPathX();  //next_x_vals;
-                    msgJson["next_y"] = controller.getPathY(); // next_y_vals;
+                    msgJson["next_x"] = controller.getPathX();
+                    msgJson["next_y"] = controller.getPathY();
                     auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
                     cout << endl << "Sending message: " << msg << endl << endl;
