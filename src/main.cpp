@@ -74,7 +74,7 @@ int main() {
 
             auto s = hasData(data);
 
-            cout << endl << "Receiving message: " << s << endl << endl;
+            //cout << endl << "Receiving message: " << s << endl << endl;
 
             if (s != "") {
                 auto j = json::parse(s);
@@ -257,12 +257,12 @@ int main() {
                         end_of_prev_vx = (end_of_prev_x - before_end_of_prev_x) / 0.02;
                         end_of_prev_vy = (end_of_prev_y - before_end_of_prev_y) / 0.02;
                     }
-                    cout << "End of prev (" << previous_path_x.size() << ") x:" << end_of_prev_x
-                         << " y:" << end_of_prev_y << " vx:" << end_of_prev_vx << " vy:" << end_of_prev_vy << endl;
+                    //cout << "End of prev (" << previous_path_x.size() << ") x:" << end_of_prev_x
+                    //     << " y:" << end_of_prev_y << " vx:" << end_of_prev_vx << " vy:" << end_of_prev_vy << endl;
 
                     vector<double> end_of_prev_sdv = track.xyv_to_sdv(end_of_prev_x,end_of_prev_y,end_of_prev_vx,end_of_prev_vy);
-                    cout << "End of prev s:" << end_of_prev_sdv[0] << " d:" << end_of_prev_sdv[1]
-                         << " vs:" << end_of_prev_sdv[2] << " vd:" << end_of_prev_sdv[3] << endl;
+                    //cout << "End of prev s:" << end_of_prev_sdv[0] << " d:" << end_of_prev_sdv[1]
+                    //     << " vs:" << end_of_prev_sdv[2] << " vd:" << end_of_prev_sdv[3] << endl;
                     double lookahead_seconds = 2;
                     double delta_t = 0.5;
                     TrajectoryPlanner trajectory_planner(end_of_previous_path_prediction,
@@ -279,7 +279,7 @@ int main() {
                     for(int i = 0; i < next_s_vals.size(); i++) {
                         cout << "    " << next_s_vals[i] << "    " << next_d_vals[i] << "    " << next_speed_vals[i] << endl;
                     }
-                    cout << "Car x:" << car_x << " y:" << car_y << endl;
+                    cout << "EndOfPrev x:" << end_of_prev_x << " y:" << end_of_prev_y << endl;
                     cout << "Trajectory x/y:" << endl;
                     for(int i = 0; i < next_s_vals.size(); i++) {
                         vector<double> next_xy = track.sd_to_xy(next_s_vals[i], next_d_vals[i]);

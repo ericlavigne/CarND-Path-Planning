@@ -30,12 +30,15 @@ void TrajectoryPlanner::calculate(double calc_time_limit_seconds) {
     clock_t start_clock = clock();
     while(! openStates.empty()) {
         CarState current_state = openStates.top();
+        cout << "    " << current_state.show() << "  ";
         openStates.pop();
         string current_key = current_state.key();
         if(closedStates.count(current_key) > 0) {
             // This state (or very similar) already closed. Skip it.
+            cout << "dup" << endl;
         } else if((best.time > lookahead_seconds - delta_t / 2) &&
                 (best.value_estimate() > current_state.value_estimate())) {
+            cout << "worse than terminal" << endl;
             // Already found good end state, and the best candidate open state is worse. We're done.
             cout << "Trajectory Planner reached objective. Clearing open states." << endl;
             while(! openStates.empty()) {
@@ -46,7 +49,9 @@ void TrajectoryPlanner::calculate(double calc_time_limit_seconds) {
             int current_time_step = (int) lround(current_state.time / delta_t);
             Prediction prediction = predictions[current_time_step + 1];
             vector<CarState> next_states = current_state.next_states(prediction, delta_t);
+            cout << "spawn " << next_states.size() << " new states" << endl;
             for(CarState next_state : next_states) {
+                cout << "        " << next_state.show() << "  ";
                 int best_time_step = (int) lround(best.time / delta_t);
                 int next_time_step = (int) lround(next_state.time / delta_t);
                 int terminal_time_step = (int) lround(lookahead_seconds / delta_t);
@@ -56,20 +61,27 @@ void TrajectoryPlanner::calculate(double calc_time_limit_seconds) {
                 string next_key = next_state.key();
                 if(next_time_step > best_time_step) {
                     // Always prefer states that are further in the future.
+                    cout << "**best+t** ";
                     best = next_state;
                 } else if(next_time_step == best_time_step && next_score > best_score) {
                     // Same time as best. Better score. This is the new best.
+                    cout << "**best+v** ";
                     best = next_state;
                 }
                 if(terminal_found && next_score < best_score) {
                     // Current best is not estimate, and this state's optimistic estimate is worse. Skip.
+                    cout << "worse-than-best";
                 } else if(closedStates.count(next_key) > 0) {
                     // Already closed this state (or very similar). Skip.
+                    cout << "dup";
                 } else if(next_time_step >= terminal_time_step) {
                     closedStates[next_state.key()] = next_state;
+                    cout << "terminal";
                 } else {
+                    cout << "open";
                     openStates.push(next_state);
                 }
+                cout << endl;
             }
         }
         clock_t current_clock = clock();
@@ -80,7 +92,9 @@ void TrajectoryPlanner::calculate(double calc_time_limit_seconds) {
         }
         //cout << "TrajectoryPlanner::calculate - tick open:" << openStates.size() << " closed:" << closedStates.size() << endl;
     }
-    cout << "Finished TrajectoryPlanner::calculate" << endl;
+    cout << "Best: " << best.show() << "    " << best.key() << endl;
+    cout << "Finished TrajectoryPlanner::calculate with " << closedStates.size() << " closed and "
+         << openStates.size() << " open." << endl;
 }
 
 vector<CarState> TrajectoryPlanner::path() {

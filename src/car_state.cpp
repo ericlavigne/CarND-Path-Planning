@@ -148,7 +148,7 @@ string CarState::show() {
     stream << "<CarState |";
     stream << setprecision(4) << " s:" << s;
     stream << setprecision(3) << " d:" << d << " vs:" << vs << " vd:" << vd;
-    stream << setprecision(2) << " lane_sec:" << lane_line_seconds;
+    stream << setprecision(2) << " lane_sec:" << lane_line_seconds << " value:" << value_estimate();
     stream << " >";
     return stream.str();
 }
