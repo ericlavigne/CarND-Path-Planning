@@ -2,6 +2,7 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 
 CarState::CarState(double s_, double d_, double vs_, double vd_,
                    double speed_limit_, double penalty_, double lane_line_seconds_,
@@ -22,68 +23,62 @@ double CarState::value_estimate() const {
 }
 
 vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
+    double speed_limit_d = 1 * delta_t; // 1 m/s max, but will apply penalty if actually go that fast
+    double min_d = d - speed_limit_d;
+    double max_d = d + speed_limit_d;
+    double left_side_of_road = 1;
+    double right_side_of_road = 3 * 4 - 1;
+    if(min_d < left_side_of_road) {
+        min_d = left_side_of_road;
+    }
+    if(max_d > right_side_of_road) {
+        max_d = right_side_of_road;
+    }
+    if(d < left_side_of_road) {
+        min_d = left_side_of_road;
+        max_d = left_side_of_road + speed_limit_d;
+    }
+    if(d > right_side_of_road) {
+        min_d = right_side_of_road - speed_limit_d;
+        max_d = right_side_of_road;
+    }
+    if(max_d < min_d) {
+        cout << "CarState no options min_d:" << min_d << " max_d:" << max_d << endl;
+        throw 0;
+    }
+
     // List d,vd pairs for next states
     vector<double> next_d_values(0);
-    vector<double> next_vd_values(0);
-    // Aim for each of the lane centers with varying maximum acceleration
-    for (double max_acceleration : {1.0, 2.0}) {
-        // Determine range of d values at which we can have vd=0 in next tick.
-        double min_stopped_pos, max_stopped_pos;
-        if(abs(vd) < 0.1) {
-            min_stopped_pos = d - max_acceleration * delta_t / 4;
-            max_stopped_pos = d + max_acceleration * delta_t / 4;
-        } else if(vd > 0) {
-            min_stopped_pos = d + 0.5 / max_acceleration * pow(vd,2)
-                              - 0.25 * max_acceleration * pow((delta_t - vd / max_acceleration),2);
-            max_stopped_pos = d + 0.5 / max_acceleration * pow(vd,2)
-                              + 0.25 * (delta_t - vd / max_acceleration) * (3 * vd + delta_t * max_acceleration);
-        } else {
-            max_stopped_pos = d - 0.5 / max_acceleration * pow(vd,2)
-                              + 0.25 * max_acceleration * pow((delta_t + vd / max_acceleration),2);
-            min_stopped_pos = d - 0.5 / max_acceleration * pow(vd,2)
-                              - 0.25 * (delta_t + vd / max_acceleration) * (-3 * vd + delta_t * max_acceleration);
-        }
-        // Determine our closest stopping point after one tick accelerating left or right.
-        // If goal outside this range then use max acceleration.
-        // If goal inside this range use proportional acceleration based on where in this range.
-        double left_accel_v = vd - max_acceleration * delta_t;
-        double left_accel_d = d + vd * delta_t - 0.5 * max_acceleration * pow(delta_t,2);
-        double left_accel_stop_time = abs(left_accel_v) / max_acceleration;
-        double left_accel_stop_d = left_accel_d + 0.5 * left_accel_v * left_accel_stop_time;
-        double right_accel_v = vd + max_acceleration * delta_t;
-        double right_accel_d = d + vd * delta_t + 0.5 * max_acceleration * pow(delta_t,2);
-        double right_accel_stop_time = abs(right_accel_v) / max_acceleration;
-        double right_accel_stop_d = right_accel_d + 0.5 * right_accel_v * right_accel_stop_time;
-        for(double lane_center : {2.0, 6.0, 10.0}) {
-            if(lane_center > min_stopped_pos && lane_center < max_stopped_pos) {
-                next_d_values.push_back(lane_center);
-                next_vd_values.push_back(0.0);
-            } else {
-                double acceleration = 0;
-                if (lane_center < left_accel_stop_d) {
-                    acceleration = 0 - max_acceleration;
-                } else if (lane_center > right_accel_stop_d) {
-                    acceleration = max_acceleration;
-                } else {
-                    acceleration = 2 * max_acceleration
-                                   * ((lane_center - left_accel_stop_d) / (right_accel_stop_d - left_accel_stop_d)
-                                      - 0.5);
-                }
-                next_d_values.push_back(d + 0.5 * acceleration * pow(delta_t,2));
-                next_vd_values.push_back(vd + acceleration * delta_t);
-            }
+    for(int i = 0; i < 7; i++) {
+        double new_d = min_d + i * (max_d - min_d) / 6.0;
+        next_d_values.push_back(new_d);
+    }
+    // If lane center in range, make sure it is included.
+    for(double lane_center : {2,6,10}) {
+        if(lane_center <= max_d && lane_center >= min_d) {
+            next_d_values.push_back(lane_center);
         }
     }
 
-    // Forward acceleration options: +10, 0, or -10 m/s2 limited by max speed and min speed (max/2)
+    // List vs options for next states
+    double max_acceleration = 10;
+    double min_v = max(vs,1.0) - max_acceleration * delta_t;
+    double max_v = max(vs,1.0) + max_acceleration * delta_t;
+    if(max_v > speed_limit) {
+        max_v = speed_limit;
+    }
+    if(min_v < 1) {
+        min_v = 1;
+    }
+    if(max_v < min_v) {
+        min_v = max_v;
+    }
     vector<double> next_vs_values(0);
-    next_vs_values.push_back(vs);
-    if(speed_limit > vs + 0.1) {
-        next_vs_values.push_back(min(speed_limit, vs + delta_t * 10));
+    for(int i = 0; i < 5; i++) {
+        double new_vs = min_v + i * (max_v - min_v) / 4.0;
+        next_vs_values.push_back(new_vs);
     }
-    if(speed_limit / 2 < vs - 0.1) {
-        next_vs_values.push_back(max(speed_limit / 2, vs - delta_t * 10));
-    }
+
     // Create new car states for each combination of d,vd and vs
     vector<CarState> result;
     string old_key = key();
@@ -91,7 +86,7 @@ vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
         double next_s = s + 0.5 * delta_t * (vs + next_vs);
         for(int i = 0; i < next_d_values.size(); i++) {
             double next_d = next_d_values[i];
-            double next_vd = next_vd_values[i];
+            double next_vd = (next_d - d) / delta_t;
             double next_lane_line_seconds = lane_line_seconds;
             if(prediction.touching_lane_line(next_d)) {
                 next_lane_line_seconds += delta_t;
@@ -102,9 +97,7 @@ vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
             if(prediction.crashed(next_s, next_d)) {
                 next_penalty += 1000;
             }
-            if(next_lane_line_seconds > 1) {
-                next_penalty += 0.1 * delta_t;
-            }
+            next_penalty += 0.1 * next_lane_line_seconds * delta_t;
             if(next_lane_line_seconds > 2) {
                 next_penalty += 0.2 * delta_t;
             }
@@ -115,6 +108,10 @@ vector<CarState> CarState::next_states(Prediction prediction, double delta_t) {
             if(off_road_distance > 0.01) {
                 next_penalty += 200 + off_road_distance * 20;
             }
+            //double distance_to_crash = prediction.nearest_car_distance(next_s,next_d);
+            //if(distance_to_crash < 20) {
+            //    next_penalty += pow(20 - distance_to_crash, 2);
+            //}
             CarState car(next_s, next_d, next_vs, next_vd, speed_limit, next_penalty,
                          next_lane_line_seconds, time + delta_t, lookahead_time, old_key);
             result.push_back(car);
@@ -140,7 +137,8 @@ string CarState::key() {
     return "s:" + to_string(approx_s)
            + " d:" + to_string(d10 / 10) + "." + to_string(d10 % 10)
            + " vs:" + to_string(approx_vs)
-           + " vd:" + (vd10 < 0 ? "-" : "") + to_string(abs_vd10 / 10) + "." + to_string(abs_vd10 % 10);
+           + " vd:" + (vd10 < 0 ? "-" : "") + to_string(abs_vd10 / 10) + "." + to_string(abs_vd10 % 10)
+           + " t:" + to_string(time) + " p:" + to_string(10 * int(penalty / 10.0));
 }
 
 string CarState::show() {

@@ -45,7 +45,7 @@ int main() {
 
     // Start in lane 1 (0 is left, 1 is middle, 2 is right)
     int lane = 1;
-    double speed_limit_mph = 49.5; // mph
+    double speed_limit_mph = 10.0; //49.5; // mph
     double speed_limit = speed_limit_mph / 2.24;
     double acceleration_limit = 10.0;
     double jerk_limit = 10.0;
@@ -148,7 +148,7 @@ int main() {
                     //     << " vs:" << end_of_prev_sdv[2] << " vd:" << end_of_prev_sdv[3] << endl;
 
                     // Create and use trajectory planner
-                    double lookahead_seconds = 2;
+                    double lookahead_seconds = 1;
                     double delta_t = 0.5;
                     TrajectoryPlanner trajectory_planner(end_of_previous_path_prediction,
                                                          end_of_prev_sdv[0], end_of_prev_sdv[1],
@@ -191,9 +191,11 @@ int main() {
 
                     cout << endl << "Sending message: " << msg << endl << endl;
 
+                    //throw 0;
+
                     //this_thread::sleep_for(chrono::milliseconds(1000));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-
+                    //throw 0;
                 }
             } else {
                 // Manual driving
