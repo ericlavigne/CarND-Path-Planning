@@ -13,14 +13,13 @@ private:
     DiscretePrediction* _prediction;
     AStar<TrajectoryState>* _optimizer;
     int _start_s, _start_d, _start_v;
-protected:
-    ~DiscreteTrajectoryPlanner();
 public:
     DiscreteTrajectoryPlanner(int ego_s, int ego_d, int ego_v,
                               vector<int> other_s, vector<int> other_d, vector<int> other_v,
                               int simulate_steps, int horizon_steps,
                               int max_v, int max_a, int num_lanes,
                               int crash_distance, int preferred_distance);
+    ~DiscreteTrajectoryPlanner();
     bool finished();
     double score();
     vector<int> pathS();

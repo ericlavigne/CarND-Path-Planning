@@ -1,6 +1,7 @@
 #include "trajectory_state.h"
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 
 TrajectoryState::TrajectoryState(int s, int d, int v, int t, int simulate_steps, int horizon_steps,
                                  int min_v, int max_v, int max_a, double penalty_so_far, int num_lanes,
@@ -62,29 +63,30 @@ double TrajectoryState::scoreEstimate() const {
 vector<TrajectoryState> TrajectoryState::nextStates() const {
     vector<TrajectoryState> res;
     if(!_valid) {
+        cout << "Called nextStates on invalid TrajectoryState" << endl;
         return res;
     }
-    if(_d % 2 == 1) {
-        // Between lanes. Only options are right or left.
-        for(int vd = -1; vd <= 1; vd += 2) {
-            res.push_back(TrajectoryState(_s+_v,_d+vd,_v,_t+1,_simulate_steps-1,
-                                          _horizon_steps,_min_v,_max_v,_max_a,_penalty_so_far,_num_lanes,_p));
+    cout << "Next states for " << key() << " :" << endl;
+    // Can move left or right if and only if that would keep the car on the road.
+    for(int vd = -1; vd <= 1; vd += 2) {
+        int d = _d + vd;
+        if(d >= 0 && d <= 2*(_num_lanes-1)) {
+            TrajectoryState newState(_s + _v, d, _v, _t + 1, _simulate_steps - 1,
+                                     _horizon_steps, _min_v, _max_v, _max_a, _penalty_so_far, _num_lanes, _p);
+            cout << "   Lane shift " << vd << ": " << newState.key() << endl;
+            res.push_back(newState);
         }
-    } else {
+    }
+    // Can only accelerate/decelerate if not already in the middle of a lane change.
+    if(_d % 2 == 0) {
         for (int a = -_max_a; a <= _max_a; a++) {
             int v = _v + a;
             int v_ave = (_v + v) / 2;
             if (v >= _min_v && v <= _max_v) {
-                res.push_back(TrajectoryState(_s+v_ave,_d,_v+a,_t+1,_simulate_steps-1,
-                                              _horizon_steps,_min_v,_max_v,_max_a,_penalty_so_far,_num_lanes,_p));
-            }
-        }
-        // Shifting lanes and accelerating are not allowed at the same time.
-        for(int vd = -1; vd <= 1; vd++) {
-            int d = _d + vd;
-            if(d >= 0 && d <= 2*(_num_lanes-1)) {
-                res.push_back(TrajectoryState(_s + _v, _d + vd, _v, _t + 1, _simulate_steps - 1,
-                                              _horizon_steps, _min_v, _max_v, _max_a, _penalty_so_far, _num_lanes, _p));
+                TrajectoryState newState(_s+v_ave,_d,_v+a,_t+1,_simulate_steps-1,
+                                         _horizon_steps,_min_v,_max_v,_max_a,_penalty_so_far,_num_lanes,_p);
+                cout << "   Accelerate " << a << ": " << newState.key() << endl;
+                res.push_back(newState);
             }
         }
     }

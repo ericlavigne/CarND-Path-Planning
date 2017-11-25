@@ -54,6 +54,6 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
         ${CMAKE_BINARY_DIR}/googletest-build)
 
 # Define testing target
-set(test_sources test/astar_test.cpp)
+set(test_sources test/astar_test.cpp test/discrete_trajectory_planner_test.cpp)
 add_executable(test_path_planning ${test_sources} ${sources})
 target_link_libraries(test_path_planning gtest_main)
