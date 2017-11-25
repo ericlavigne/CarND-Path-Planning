@@ -6,8 +6,12 @@ DiscreteTrajectoryPlanner::DiscreteTrajectoryPlanner(int ego_s, int ego_d, int e
                                                      int max_v, int max_a, int num_lanes,
                                                      int crash_distance, int preferred_distance)
 {
-    // TODO: Create relative versions of other_X
-    _prediction = new DiscretePrediction(other_s,other_d,other_v,crash_distance,preferred_distance);
+    _start_v = ego_v;
+    vector<int> other_relative_v;
+    for(int abs_v : other_v) {
+        other_relative_v.push_back(abs_v - _start_v);
+    }
+    _prediction = new DiscretePrediction(other_s,other_d,other_relative_v,crash_distance,preferred_distance);
     TrajectoryState initialState(ego_s,ego_d,0,0,simulate_steps,horizon_steps,-ego_v,max_v-ego_v,max_a,0.0,num_lanes,_prediction);
     _optimizer = new AStar<TrajectoryState>(initialState);
 }

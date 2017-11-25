@@ -12,7 +12,7 @@ class DiscreteTrajectoryPlanner {
 private:
     DiscretePrediction* _prediction;
     AStar<TrajectoryState>* _optimizer;
-    int _start_s, _start_d, _start_v;
+    int _start_v;
 public:
     DiscreteTrajectoryPlanner(int ego_s, int ego_d, int ego_v,
                               vector<int> other_s, vector<int> other_d, vector<int> other_v,
