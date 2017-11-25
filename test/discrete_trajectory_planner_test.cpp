@@ -66,4 +66,34 @@ namespace {
         EXPECT_EQ(planner.pathD(),expected_path_d);
         EXPECT_EQ(planner.pathV(),expected_path_v);
     }
+    /*
+       Blocked
+       ------------------------------------
+                      X
+       O- -  -  - --  X
+                      X
+       ------------------------------------
+     */
+    TEST(DiscreteTrajectoryTest, Blocked) {
+        int ego_s=0, ego_d=2, ego_v =0;
+        int simulate_steps=9, horizon_steps=5;
+        int max_v=3, max_a=1, num_lanes=3;
+        int crash_distance=1, preferred_distance=3;
+        vector<int>
+                other_s = {15,15,15},
+                other_d = {0,2,4},
+                other_v = {0,0,0};
+        DiscreteTrajectoryPlanner planner(ego_s, ego_d, ego_v,
+                                          other_s, other_d, other_v,
+                                          simulate_steps, horizon_steps,
+                                          max_v, max_a, num_lanes,
+                                          crash_distance, preferred_distance);
+        planner.calculateSeconds(1.0);
+        EXPECT_TRUE(planner.finished());
+        vector<int> pathS = planner.pathS();
+        vector<int> pathD = planner.pathD();
+        EXPECT_EQ(pathS.size(),10);
+        EXPECT_EQ(pathS[9],12);
+        EXPECT_EQ(pathD[9],2);
+    }
 }
