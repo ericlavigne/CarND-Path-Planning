@@ -147,7 +147,7 @@ public:
         vector<State> newStates = state.nextStates();
         cout << "New open states for " << k << " :" << endl;
         for (State newState : newStates) {
-            string kNew = state.key();
+            string kNew = newState.key();
             if(closedStates.count(kNew) == 0) {
                 cout << "   o: " << kNew << endl;
                 keyToPrevKey[kNew] = k;

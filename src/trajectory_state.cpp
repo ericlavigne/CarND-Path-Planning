@@ -14,12 +14,18 @@ TrajectoryState::TrajectoryState(int s, int d, int v, int t, int simulate_steps,
     } else if(p->tooClose(s,d,t)) {
         _penalty_so_far += (simulate_steps + horizon_steps) * 100;
     }
+    if(d%2 == 1) {
+        // Small lane-changing penalty so car only changes lanes when doing so will help.
+        _penalty_so_far += 1;
+    }
     _valid = true;
 }
 
 TrajectoryState::TrajectoryState(const TrajectoryState &state)
-: _s(state._s), _d(state._d), _v(state._v), _simulate_steps(state._simulate_steps), _horizon_steps(state._horizon_steps),
-  _min_v(state._min_v), _max_v(state._max_v), _max_a(state._max_a), _penalty_so_far(state._penalty_so_far), _p(state._p)
+: _s(state._s), _d(state._d), _v(state._v), _t(state._t),
+  _simulate_steps(state._simulate_steps), _horizon_steps(state._horizon_steps),
+  _min_v(state._min_v), _max_v(state._max_v), _max_a(state._max_a),
+  _penalty_so_far(state._penalty_so_far), _num_lanes(state._num_lanes), _p(state._p)
 {
     _valid = true;
 }
@@ -64,6 +70,9 @@ vector<TrajectoryState> TrajectoryState::nextStates() const {
     vector<TrajectoryState> res;
     if(!_valid) {
         cout << "Called nextStates on invalid TrajectoryState" << endl;
+        return res;
+    }
+    if(final()) {
         return res;
     }
     cout << "Next states for " << key() << " :" << endl;
