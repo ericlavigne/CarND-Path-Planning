@@ -7,7 +7,12 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/track.cpp src/track.h src/controller.cpp src/controller.h src/prediction.cpp src/prediction.h src/trajectory_planner.cpp src/trajectory_planner.h src/car_state.cpp src/car_state.h)
+set(sources src/astar.h
+        src/track.cpp src/track.h src/controller.cpp src/controller.h
+        src/prediction.cpp src/prediction.h src/trajectory_planner.cpp src/trajectory_planner.h
+        src/car_state.cpp src/car_state.h src/trajectory_state.cpp src/trajectory_state.h
+        src/discrete_prediction.cpp src/discrete_prediction.h
+        src/discrete_trajectory_planner.cpp src/discrete_trajectory_planner.h)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 include_directories(/usr/local/include)
