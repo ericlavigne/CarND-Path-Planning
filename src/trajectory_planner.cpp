@@ -55,15 +55,17 @@ vector<double> TrajectoryPlanner::pathS() {
 vector<double> TrajectoryPlanner::pathD() {
     vector<double> result;
     vector<int> discrete_path_d = _discrete_planner->pathD();
+    cout << "Plan:  " << _d;
     for(int i = 0; i < discrete_path_d.size(); i++) {
         if(i==0) {
             result.push_back(_d);
         } else {
             result.push_back(convert_d_to_continuous(discrete_path_d[i]));
         }
+        cout << "   " << discrete_path_d[i];
     }
+    cout << endl;
     return result;
-
 }
 
 vector<double> TrajectoryPlanner::pathV() {
@@ -80,18 +82,19 @@ vector<double> TrajectoryPlanner::pathV() {
 }
 
 int TrajectoryPlanner::convert_s_to_discrete(double s) {
-    return (int) round(s);
+    return int(0.5 + s);
 }
 
 int TrajectoryPlanner::convert_d_to_discrete(double d, double vd) {
-    int result = (int) round((d + vd) * 2.0 / _lane_width - 1.0);
+    int result = int(0.5 + (d + vd) * 2.0 / _lane_width - 1.0);
     result = max(0,result); // Can't be off-road to left
     result = min((_num_lanes-1)*2,result); // Can't be off-road to right
+    //cout << "d->discrete: " << d << "," << vd << " => " << result << endl;
     return result;
 }
 
 int TrajectoryPlanner::convert_v_to_discrete(double vs) {
-    int result = (int) round(vs * _discrete_max_v / _max_vs);
+    int result = int(0.5 + vs * _discrete_max_v / _max_vs);
     result = min(_discrete_max_v, result);
     return result;
 }

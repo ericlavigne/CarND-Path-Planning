@@ -155,14 +155,14 @@ void Controller::recalculatePath() {
         double ay = 0.5 * (ay_for_des_y + ay_for_des_vy);
         // Enforce acceleration and jerk limits on turning. Reserve at least 10% for necessary speed changes.
         if(abs(ay) > 0.9 * acceleration_limit) {
-            cout << "Enforcing acceleration limit. Changing ay from " << ay;
+            //cout << "Enforcing acceleration limit. Changing ay from " << ay;
             ay = copysign(0.9 * acceleration_limit, ay);
-            cout << " to " << ay << endl;
+            //cout << " to " << ay << endl;
         }
         if(abs(ay - last_ay) > 0.9 * jerk_limit * delta_t) {
-            cout << "Enforcing jerk limit. Changing ay from " << ay;
+            //cout << "Enforcing jerk limit. Changing ay from " << ay;
             ay = copysign(0.9 * jerk_limit * delta_t, ay - last_ay) + last_ay;
-            cout << " to " << ay << " when previous acceleration was " << last_ay << endl;
+            //cout << " to " << ay << " when previous acceleration was " << last_ay << endl;
         }
         double future_des_speed = max(speed_limit, spline_x_to_speed(future_x));
         double future_des_vx = sqrt(future_des_speed * future_des_speed - 2 * max(last_vy * last_vy, future_des_vy * future_des_vy));
@@ -217,8 +217,8 @@ void Controller::recalculatePath() {
         } else {
             path_x[i] = x * cos(ref_yaw) - y * sin(ref_yaw) + ref_x;
             path_y[i] = x * sin(ref_yaw) + y * cos(ref_yaw) + ref_y;
-            cout << "Converting path x:" << x << " y:" << y << " ref_yaw:" << ref_yaw << " ref_x:" << ref_x << " ref_y:" << ref_y
-                 << " converted x:" << path_x[i] << " y:" << path_y[i] << endl;
+            //cout << "Converting path x:" << x << " y:" << y << " ref_yaw:" << ref_yaw << " ref_x:" << ref_x << " ref_y:" << ref_y
+            //     << " converted x:" << path_x[i] << " y:" << path_y[i] << endl;
         }
         //cout << "    car x:" << x << " y:" << y << "  global x:" << path_x[i] << " y:" << path_y[i] << endl;
     }

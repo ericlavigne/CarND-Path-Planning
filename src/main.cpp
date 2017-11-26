@@ -52,6 +52,9 @@ int main() {
     h.onMessage([&track, &lane, &speed_limit, &acceleration_limit, &jerk_limit, &speed_limit_mph](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode) {
+
+        clock_t startClock = clock();
+
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
         // The 2 signifies a websocket event
@@ -149,32 +152,30 @@ int main() {
                     //     << " vs:" << end_of_prev_sdv[2] << " vd:" << end_of_prev_sdv[3] << endl;
 
                     // Create and use trajectory planner
-                    double lookahead_seconds = 2;
-                    double delta_t = 0.5;
-                    TrajectoryPlanner planner(end_of_prev_sdv[0], end_of_prev_sdv[1], end_of_prev_sdv[2],
-                                              0.0, pred_cars_s, pred_cars_d, cars_vs, cars_vd,
+                    double lookahead_seconds = 10;
+                    TrajectoryPlanner planner(end_of_prev_sdv[0], end_of_prev_sdv[1], end_of_prev_sdv[2], 0.0,
+                                              pred_cars_s, pred_cars_d, cars_vs, cars_vd,
                                               speed_limit, acceleration_limit, lookahead_seconds);
-
-                    planner.calculate(0.1);
+                    planner.calculate(0.01);
                     vector<double> next_s_vals = planner.pathS();
                     vector<double> next_d_vals = planner.pathD();
                     vector<double> next_speed_vals = planner.pathV();
 
                     // Print out trajectory
-                    cout << "Trajectory s/d/v:" << endl;
-                    for(int i = 0; i < next_s_vals.size(); i++) {
-                        cout << "    " << next_s_vals[i] << "    " << next_d_vals[i] << "    " << next_speed_vals[i] << endl;
-                    }
-                    cout << "EndOfPrev x:" << end_of_prev_x << " y:" << end_of_prev_y << endl;
+                    //cout << "Trajectory s/d/v:" << endl;
+                    //for(int i = 0; i < next_s_vals.size(); i++) {
+                    //    cout << "    " << next_s_vals[i] << "    " << next_d_vals[i] << "    " << next_speed_vals[i] << endl;
+                    //}
+                    //cout << "EndOfPrev x:" << end_of_prev_x << " y:" << end_of_prev_y << endl;
 
                     // Convert trajectory from s,d to x,y
                     vector<double> next_x_vals(0), next_y_vals(0);
-                    cout << "Trajectory x/y:" << endl;
+                    //cout << "Trajectory x/y:" << endl;
                     for(int i = 0; i < next_s_vals.size(); i++) {
                         vector<double> next_xy = track.sd_to_xy(next_s_vals[i], next_d_vals[i]);
                         next_x_vals.push_back(next_xy[0]);
                         next_y_vals.push_back(next_xy[1]);
-                        cout << "    " << next_xy[0] << "    " << next_xy[1] << endl;
+                        //cout << "    " << next_xy[0] << "    " << next_xy[1] << endl;
                     }
 
                     //cout << "Creating controller" << endl;
@@ -190,7 +191,12 @@ int main() {
                     msgJson["next_y"] = controller.getPathY();
                     auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
-                    cout << endl << "Sending message: " << msg << endl << endl;
+                    //cout << endl << "Sending message: " << msg << endl << endl;
+
+
+                    clock_t endClock = clock();
+                    double elapsedSeconds = double(endClock - startClock) / CLOCKS_PER_SEC;
+                    //cout << "Callback seconds: " << elapsedSeconds << endl;
 
                     //this_thread::sleep_for(chrono::milliseconds(1000));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
