@@ -44,14 +44,14 @@ public:
         closedStates[initialKey] = initialState;
         keyToPathLength[initialKey] = 1;
         vector<State> newStates = initialState.nextStates();
-        cout << "Initial state: " << initialKey << endl;
+        //cout << "Initial state: " << initialKey << endl;
         if(!_finished) {
             for (State state : newStates) {
                 string k = state.key();
                 keyToPrevKey[k] = initialKey;
                 keyToPathLength[k] = 2;
                 openStates.push(state);
-                cout << "   next: " << k << endl;
+                //cout << "   next: " << k << endl;
             }
         }
     }
@@ -104,7 +104,7 @@ public:
         if(_finished) {
             return;
         } else if(openStates.empty()) {
-            cout << "Finished: no open states" << endl;
+            //cout << "Finished: no open states" << endl;
             _finished = true;
             return;
         }
@@ -112,13 +112,13 @@ public:
         openStates.pop();
         string k = state.key();
         if(closedStates.count(k) > 0) {
-            cout << "Skip redundant key: " << k << endl;
+            //cout << "Skip redundant key: " << k << endl;
             return;
         }
         closedStates[k] = state;
         double stateScore = state.scoreEstimate();
         if(bestStateFinal && stateScore < bestStateScore) {
-            cout << "Finished: Found worse than final best. Worse: " << k << " Best:" << bestState.key() << endl;
+            //cout << "Finished: Found worse than final best. Worse: " << k << " Best:" << bestState.key() << endl;
             _finished = true;
             return;
         }
@@ -137,7 +137,7 @@ public:
             stateBetterThanBest = (stateScore > bestStateScore);
         }
         if(stateBetterThanBest) {
-            cout << "New best with score " << stateScore << " : " << state.key() << endl;
+            //cout << "New best with score " << stateScore << " : " << state.key() << endl;
             bestState = state;
             bestStateScore = stateScore;
             bestLength = statePathLength;
@@ -145,16 +145,16 @@ public:
         }
         int newLength = statePathLength + 1;
         vector<State> newStates = state.nextStates();
-        cout << "New open states for " << k << " :" << endl;
+        //cout << "New open states for " << k << " :" << endl;
         for (State newState : newStates) {
             string kNew = newState.key();
             if(closedStates.count(kNew) == 0) {
-                cout << "   o: " << kNew << endl;
+                //cout << "   o: " << kNew << endl;
                 keyToPrevKey[kNew] = k;
                 keyToPathLength[kNew] = newLength;
                 openStates.push(newState);
             } else {
-                cout << "   x: " << kNew << endl;
+                //cout << "   x: " << kNew << endl;
             }
         }
     }

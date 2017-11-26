@@ -69,20 +69,20 @@ double TrajectoryState::scoreEstimate() const {
 vector<TrajectoryState> TrajectoryState::nextStates() const {
     vector<TrajectoryState> res;
     if(!_valid) {
-        cout << "Called nextStates on invalid TrajectoryState" << endl;
+        //cout << "Called nextStates on invalid TrajectoryState" << endl;
         return res;
     }
     if(final()) {
         return res;
     }
-    cout << "Next states for " << key() << " :" << endl;
+    //cout << "Next states for " << key() << " :" << endl;
     // Can move left or right if and only if that would keep the car on the road.
     for(int vd = -1; vd <= 1; vd += 2) {
         int d = _d + vd;
         if(d >= 0 && d <= 2*(_num_lanes-1)) {
             TrajectoryState newState(_s + _v, d, _v, _t + 1, _simulate_steps - 1,
                                      _horizon_steps, _min_v, _max_v, _max_a, _penalty_so_far, _num_lanes, _p);
-            cout << "   Lane shift " << vd << ": " << newState.key() << endl;
+            //cout << "   Lane shift " << vd << ": " << newState.key() << endl;
             res.push_back(newState);
         }
     }
@@ -94,7 +94,7 @@ vector<TrajectoryState> TrajectoryState::nextStates() const {
             if (v >= _min_v && v <= _max_v) {
                 TrajectoryState newState(_s+v_ave,_d,_v+a,_t+1,_simulate_steps-1,
                                          _horizon_steps,_min_v,_max_v,_max_a,_penalty_so_far,_num_lanes,_p);
-                cout << "   Accelerate " << a << ": " << newState.key() << endl;
+                //cout << "   Accelerate " << a << ": " << newState.key() << endl;
                 res.push_back(newState);
             }
         }
