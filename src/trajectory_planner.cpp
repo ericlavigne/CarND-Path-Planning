@@ -1,138 +1,111 @@
 #include <iostream>
 #include "trajectory_planner.h"
-#include "car_state.h"
-#include <ctime>
 
-TrajectoryPlanner::TrajectoryPlanner(Prediction prediction_, double s_, double d_, double vs_, double vd_,
-                                     double speed_limit_, double lookahead_seconds_, double delta_t_)
-        : s(s_), d(d_), vs(vs_), vd(vd_),
-          speed_limit(speed_limit_), lookahead_seconds(lookahead_seconds_), delta_t(delta_t_),
-          best(s_,d_,max(vs_, speed_limit_ / 2),vd_,speed_limit_,0,0,0,lookahead_seconds_,"")
+TrajectoryPlanner::TrajectoryPlanner(double s, double d, double vs, double vd,
+                  vector<double> other_s, vector<double> other_d, vector<double> other_vs, vector<double> other_vd,
+                  double max_vs, double max_as, double lookahead_seconds)
+: _s(s), _d(d), _vs(vs), _vd(vd), _other_s(other_s), _other_d(other_d), _other_vs(other_vs), _other_vd(other_vd),
+  _max_vs(max_vs), _max_as(max_as), _lookahead_seconds(lookahead_seconds),
+  _discrete_max_v(max(1,(int) floor(max_vs+0.1)))
 {
-    cout << endl << "TrajectoryPlanner constructor shows speed limit " << speed_limit << " and car speed " << best.vs << endl << endl;
-    CarState current_car(s,d,vs,vd,speed_limit,0,0,0,lookahead_seconds_,"");
-    vector<CarState> next_cars = current_car.next_states(prediction_, 0.5);
-    cout << endl << "Current car: " << current_car.show() << endl;
-    for(CarState car : next_cars) {
-        cout << "    " << car.show() << "    " << car.key() << endl;
+    int discrete_max_a = max(1, (int) floor(max_as+0.1));
+    int discrete_s = convert_s_to_discrete(s);
+    int discrete_d = convert_d_to_discrete(d, vd);
+    int discrete_v = convert_v_to_discrete(vs);
+    vector<int> discrete_other_s, discrete_other_d, discrete_other_v;
+    for(int i = 0; i < other_s.size(); i++) {
+        discrete_other_s.push_back(convert_s_to_discrete(other_s[i]));
+        discrete_other_d.push_back(convert_d_to_discrete(other_d[i],other_vd[i]));
+        discrete_other_v.push_back(convert_v_to_discrete(other_vs[i]));
     }
-    cout << endl;
+    int discrete_lookahead_seconds = (int) ceil(lookahead_seconds);
+    int horizon = 10;
+    int num_lanes = 3;
+    int crash_distance = 3;
+    int preferred_distance = 10;
+    _discrete_planner =
+            new DiscreteTrajectoryPlanner(discrete_s,discrete_d,discrete_v,
+                                          discrete_other_s,discrete_other_d,discrete_other_v,
+                                          discrete_lookahead_seconds, horizon,
+                                          _discrete_max_v, discrete_max_a, num_lanes,
+                                          crash_distance, preferred_distance);
+}
 
-    openStates.push(best);
-    for(int i = 0; (i - 1) * delta_t_ < lookahead_seconds_; i++) {
-        predictions.push_back(prediction_.forward_seconds(i*delta_t_));
-    }
-    cout << "Finished creating TrajectoryPlanner" << endl;
+TrajectoryPlanner::~TrajectoryPlanner() {
+    delete _discrete_planner;
 }
 
 void TrajectoryPlanner::calculate(double calc_time_limit_seconds) {
-    cout << "Started TrajectoryPlanner::calculate" << endl;
-    clock_t start_clock = clock();
-    while(! openStates.empty()) {
-        CarState current_state = openStates.top();
-        cout << "    " << current_state.show() << "  ";
-        openStates.pop();
-        string current_key = current_state.key();
-        if(closedStates.count(current_key) > 0) {
-            // This state (or very similar) already closed. Skip it.
-            cout << "dup" << endl;
-        } else if((best.time > lookahead_seconds - delta_t / 2) &&
-                (best.value_estimate() > current_state.value_estimate())) {
-            cout << "worse than terminal" << endl;
-            // Already found good end state, and the best candidate open state is worse. We're done.
-            cout << "Trajectory Planner reached objective. Clearing open states." << endl;
-            while(! openStates.empty()) {
-                openStates.pop();
-            }
-        } else {
-            closedStates[current_state.key()] = current_state;
-            int current_time_step = (int) lround(current_state.time / delta_t);
-            Prediction prediction = predictions[current_time_step + 1];
-            vector<CarState> next_states = current_state.next_states(prediction, delta_t);
-            cout << "spawn " << next_states.size() << " new states" << endl;
-            for(CarState next_state : next_states) {
-                cout << "        " << next_state.show() << "  ";
-                int best_time_step = (int) lround(best.time / delta_t);
-                int next_time_step = (int) lround(next_state.time / delta_t);
-                int terminal_time_step = (int) lround(lookahead_seconds / delta_t);
-                bool terminal_found = (best_time_step == terminal_time_step);
-                double best_score = best.value_estimate();
-                double next_score = next_state.value_estimate();
-                string next_key = next_state.key();
-                if(next_time_step > best_time_step) {
-                    // Always prefer states that are further in the future.
-                    cout << "**best+t** ";
-                    best = next_state;
-                } else if(next_time_step == best_time_step && next_score > best_score) {
-                    // Same time as best. Better score. This is the new best.
-                    cout << "**best+v** ";
-                    best = next_state;
-                }
-                if(terminal_found && next_score < best_score) {
-                    // Current best is not estimate, and this state's optimistic estimate is worse. Skip.
-                    cout << "worse-than-best";
-                } else if(closedStates.count(next_key) > 0) {
-                    // Already closed this state (or very similar). Skip.
-                    cout << "dup";
-                } else if(next_time_step >= terminal_time_step) {
-                    closedStates[next_state.key()] = next_state;
-                    cout << "terminal";
-                } else {
-                    cout << "open";
-                    openStates.push(next_state);
-                }
-                cout << endl;
-            }
-        }
-        clock_t current_clock = clock();
-        double elapsed_seconds = double(current_clock - start_clock) / CLOCKS_PER_SEC;
-        if(elapsed_seconds > calc_time_limit_seconds) {
-            cout << "Timeout in TrajectoryPlanner::calculate" << endl;
-            return;
-        }
-        //cout << "TrajectoryPlanner::calculate - tick open:" << openStates.size() << " closed:" << closedStates.size() << endl;
-    }
-    cout << "Best: " << best.show() << "    " << best.key() << endl;
-    cout << "Finished TrajectoryPlanner::calculate with " << closedStates.size() << " closed and "
-         << openStates.size() << " open." << endl;
-}
-
-vector<CarState> TrajectoryPlanner::path() {
-    //cout << "Started TrajectoryPlanner::path" << endl;
-    vector<CarState> result;
-    CarState current = best;
-    while(true) {
-        result.push_back(current);
-        if(closedStates.count(current.came_from_key) > 0) {
-            current = closedStates[current.came_from_key];
-        } else {
-            reverse(result.begin(), result.end());
-            //cout << "Finished TrajectoryPlanner::path" << endl;
-            return result;
-        }
-    }
+    _discrete_planner->calculateSeconds(calc_time_limit_seconds);
 }
 
 vector<double> TrajectoryPlanner::pathS() {
     vector<double> result;
-    for(CarState car : path()) {
-        result.push_back(car.s);
+    vector<int> discrete_path_s = _discrete_planner->pathS();
+    for(int i = 0; i < discrete_path_s.size(); i++) {
+        if(i==0) {
+            result.push_back(_s);
+        } else {
+            result.push_back(convert_s_to_continuous(discrete_path_s[i]));
+        }
     }
     return result;
 }
 
 vector<double> TrajectoryPlanner::pathD() {
     vector<double> result;
-    for(CarState car : path()) {
-        result.push_back(car.d);
+    vector<int> discrete_path_d = _discrete_planner->pathD();
+    for(int i = 0; i < discrete_path_d.size(); i++) {
+        if(i==0) {
+            result.push_back(_d);
+        } else {
+            result.push_back(convert_d_to_continuous(discrete_path_d[i]));
+        }
     }
     return result;
+
 }
 
 vector<double> TrajectoryPlanner::pathV() {
     vector<double> result;
-    for(CarState car : path()) {
-        result.push_back(car.vs);
+    vector<int> discrete_path_v = _discrete_planner->pathV();
+    for(int i = 0; i < discrete_path_v.size(); i++) {
+        if(i==0) {
+            result.push_back(_vs);
+        } else {
+            result.push_back(convert_v_to_continuous(discrete_path_v[i]));
+        }
     }
+    return result;
+}
+
+int TrajectoryPlanner::convert_s_to_discrete(double s) {
+    return (int) round(s);
+}
+
+int TrajectoryPlanner::convert_d_to_discrete(double d, double vd) {
+    int result = (int) round((d + vd) * 2.0 / _lane_width - 1.0);
+    result = max(0,result); // Can't be off-road to left
+    result = min((_num_lanes-1)*2,result); // Can't be off-road to right
+    return result;
+}
+
+int TrajectoryPlanner::convert_v_to_discrete(double vs) {
+    int result = (int) round(vs * _discrete_max_v / _max_vs);
+    result = min(_discrete_max_v, result);
+    return result;
+}
+
+double TrajectoryPlanner::convert_s_to_continuous(int s) {
+    return (double) s;
+}
+
+double TrajectoryPlanner::convert_d_to_continuous(int d) {
+    return (d+1) * _lane_width * 0.5;
+}
+
+double TrajectoryPlanner::convert_v_to_continuous(int v) {
+    double result = v * _max_vs / _discrete_max_v;
+    result = min(result,_max_vs);
     return result;
 }

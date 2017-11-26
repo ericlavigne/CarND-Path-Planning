@@ -11,7 +11,6 @@
 #include "spline.h"
 #include "track.h"
 #include "controller.h"
-#include "prediction.h"
 #include "trajectory_planner.h"
 
 using namespace std;
@@ -121,11 +120,13 @@ int main() {
                         cars_vd.push_back(sens_calc_sdv[3]);
                     }
 
-                    // Initialize Prediction
-                    Prediction current_prediction(cars_s,cars_d,cars_vs,cars_vd);
-
-                    // Move prediction further in time to match end of previous_path
-                    Prediction end_of_previous_path_prediction = current_prediction.forward_seconds(previous_path_x.size() * 0.02);
+                    // Predict where other cars will be at end of previous_path (assuming vs and vd are constant)
+                    double pred_time = previous_path_x.size() * 0.02;
+                    vector<double> pred_cars_s, pred_cars_d;
+                    for(int i = 0; i < cars_s.size(); i++) {
+                        pred_cars_s.push_back(cars_s[i] + pred_time * cars_vs[i]);
+                        pred_cars_d.push_back(cars_d[i] + pred_time * cars_vd[i]);
+                    }
 
                     // Initialize Trajectory
                     double end_of_prev_x = car_x;
@@ -150,14 +151,14 @@ int main() {
                     // Create and use trajectory planner
                     double lookahead_seconds = 2;
                     double delta_t = 0.5;
-                    TrajectoryPlanner trajectory_planner(end_of_previous_path_prediction,
-                                                         end_of_prev_sdv[0], end_of_prev_sdv[1],
-                                                         end_of_prev_sdv[2], end_of_prev_sdv[3],
-                                                         speed_limit, lookahead_seconds, delta_t);
-                    trajectory_planner.calculate(0.1);
-                    vector<double> next_s_vals = trajectory_planner.pathS();
-                    vector<double> next_d_vals = trajectory_planner.pathD();
-                    vector<double> next_speed_vals = trajectory_planner.pathV();
+                    TrajectoryPlanner planner(end_of_prev_sdv[0], end_of_prev_sdv[1], end_of_prev_sdv[2],
+                                              0.0, pred_cars_s, pred_cars_d, cars_vs, cars_vd,
+                                              speed_limit, acceleration_limit, lookahead_seconds);
+
+                    planner.calculate(0.1);
+                    vector<double> next_s_vals = planner.pathS();
+                    vector<double> next_d_vals = planner.pathD();
+                    vector<double> next_speed_vals = planner.pathV();
 
                     // Print out trajectory
                     cout << "Trajectory s/d/v:" << endl;
