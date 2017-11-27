@@ -10,8 +10,8 @@
 #include "json.hpp"
 #include "spline.h"
 #include "track.h"
-#include "controller.h"
 #include "trajectory_planner.h"
+#include "pid_controller.h"
 
 using namespace std;
 
@@ -178,21 +178,22 @@ int main() {
                         //cout << "    " << next_xy[0] << "    " << next_xy[1] << endl;
                     }
 
-                    //cout << "Creating controller" << endl;
-                    Controller controller(track, car_x, car_y, deg2rad(car_yaw), speed_limit, acceleration_limit, jerk_limit);
-                    //cout << "Updating path history" << endl;
-                    controller.updatePathHistory(previous_path_x,previous_path_y);
-                    //cout << "Updating trajectory" << endl;
-                    controller.updateTrajectory(next_x_vals, next_y_vals, next_speed_vals);
-                    //cout << "Finished with controller" << endl;
+                    double seconds_before_traj = previous_path_x.size() * 0.02;
+
+                    if(previous_path_x.size() < 1) {
+                        previous_path_x = {car_x};
+                        previous_path_y = {car_y};
+                    }
+
+                    PIDController pid(previous_path_x, previous_path_y, next_x_vals, next_y_vals, next_speed_vals,
+                                      seconds_before_traj, 1.0);
 
                     json msgJson;
-                    msgJson["next_x"] = controller.getPathX();
-                    msgJson["next_y"] = controller.getPathY();
+                    msgJson["next_x"] = pid.pathX();
+                    msgJson["next_y"] = pid.pathY();
                     auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
                     //cout << endl << "Sending message: " << msg << endl << endl;
-
 
                     clock_t endClock = clock();
                     double elapsedSeconds = double(endClock - startClock) / CLOCKS_PER_SEC;
