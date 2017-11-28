@@ -20,7 +20,7 @@ PIDController::PIDController(vector<double> carx, vector<double> cary,
         v = max(minv, sqrt(pow(prev_vx,2) + pow(prev_vy,2)));
     }
     double lookahead_seconds = 1.0;
-    while(_pathx.size() < 50) {
+    while(_pathx.size() < 150) {
         double t = _pathx.size() * 0.02;
         double t_plus = t + lookahead_seconds;
         double t_plus_traj_passed = (t_plus - seconds_before_traj) / seconds_per_traj;

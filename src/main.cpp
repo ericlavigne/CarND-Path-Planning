@@ -78,27 +78,18 @@ int main() {
                     // Main car's localization Data
                     double car_x = j[1]["x"];
                     double car_y = j[1]["y"];
-                    double car_s = j[1]["s"];
-                    double car_d = j[1]["d"];
                     double car_yaw = j[1]["yaw"];
                     double car_speed = j[1]["speed"];
 
                     // Previous path data given to the Planner
-                    auto previous_path_x = j[1]["previous_path_x"];
-                    auto previous_path_y = j[1]["previous_path_y"];
+                    vector<double> previous_path_x = j[1]["previous_path_x"];
+                    vector<double> previous_path_y = j[1]["previous_path_y"];
                     // Previous path's end s and d values
                     double end_path_s = j[1]["end_path_s"];
                     double end_path_d = j[1]["end_path_d"];
 
                     // Sensor Fusion Data, a list of all other cars on the same side of the road.
                     auto sensor_fusion = j[1]["sensor_fusion"];
-
-                    int prev_size = previous_path_x.size();
-
-                    if(prev_size > 0) {
-                        car_s = end_path_s;
-                        car_d = end_path_d;
-                    }
 
                     vector<double> cars_s(0), cars_d(0), cars_vs(0), cars_vd(0);
 
@@ -121,6 +112,11 @@ int main() {
                         cars_d.push_back(sens_calc_sdv[1]);
                         cars_vs.push_back(sens_calc_sdv[2]);
                         cars_vd.push_back(sens_calc_sdv[3]);
+                    }
+
+                    while(previous_path_x.size() > 50) {
+                        previous_path_x.pop_back();
+                        previous_path_y.pop_back();
                     }
 
                     // Predict where other cars will be at end of previous_path (assuming vs and vd are constant)
