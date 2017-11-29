@@ -44,7 +44,7 @@ int main() {
 
     // Start in lane 1 (0 is left, 1 is middle, 2 is right)
     int lane = 1;
-    double speed_limit_mph = 49.5; // mph
+    double speed_limit_mph = 47; // mph
     double speed_limit = speed_limit_mph / 2.24;
     double acceleration_limit = 10.0;
     double jerk_limit = 10.0;
