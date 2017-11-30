@@ -14,9 +14,9 @@ Track::Track(string map_file) {
         istringstream iss(line);
         double x;
         double y;
-        float s;
-        float d_x;
-        float d_y;
+        double s;
+        double d_x;
+        double d_y;
         iss >> x;
         iss >> y;
         iss >> s;
@@ -29,13 +29,6 @@ Track::Track(string map_file) {
         waypoints_dy.push_back(d_y);
     }
 
-    // Splines to support conversion from s,d to x,y.
-    // Other direction is also possible but more difficult.
-    s_x.set_points(waypoints_s,waypoints_x);
-    s_y.set_points(waypoints_s,waypoints_y);
-    s_dx.set_points(waypoints_s,waypoints_dx);
-    s_dy.set_points(waypoints_s,waypoints_dy);
-
     // Connect the beginning and end of track if endpoints are close enough.
     min_waypoint_s = waypoints_s[0];
     max_waypoint_s = waypoints_s[waypoints_s.size()-1];
@@ -43,6 +36,47 @@ Track::Track(string map_file) {
     double endpoint_distance_y = waypoints_y[0] - waypoints_y[waypoints_y.size()-1];
     endpoint_distance = sqrt(endpoint_distance_x*endpoint_distance_x + endpoint_distance_y*endpoint_distance_y);
     circular_track = (endpoint_distance < 100);
+
+    // If circular track, need to add beginning points to end and vice-versa to create overlap.
+    // In-between beginning and end, take weighted average of the two overlapping sections.
+    vector<double> aug_x;
+    vector<double> aug_y;
+    vector<double> aug_s;
+    vector<double> aug_dx;
+    vector<double> aug_dy;
+    double track_distance = max_waypoint_s - min_waypoint_s + (circular_track ? endpoint_distance : 0.0);
+    if(circular_track) {
+        for(int i : {waypoints_s.size() - 2, waypoints_s.size() - 1}) {
+            aug_x.push_back(waypoints_x[i]);
+            aug_y.push_back(waypoints_y[i]);
+            aug_s.push_back(waypoints_s[i] - track_distance);
+            aug_dx.push_back(waypoints_dx[i]);
+            aug_dy.push_back(waypoints_dy[i]);
+        }
+    }
+    for(int i = 0; i < waypoints_s.size(); i++) {
+        aug_x.push_back(waypoints_x[i]);
+        aug_y.push_back(waypoints_y[i]);
+        aug_s.push_back(waypoints_s[i]);
+        aug_dx.push_back(waypoints_dx[i]);
+        aug_dy.push_back(waypoints_dy[i]);
+    }
+    if(circular_track) {
+        for(int i : {0, 1}) {
+            aug_x.push_back(waypoints_x[i]);
+            aug_y.push_back(waypoints_y[i]);
+            aug_s.push_back(waypoints_s[i] + track_distance);
+            aug_dx.push_back(waypoints_dx[i]);
+            aug_dy.push_back(waypoints_dy[i]);
+        }
+    }
+
+    // Splines to support conversion from s,d to x,y.
+    // Other direction is also possible but more difficult.
+    s_x.set_points(aug_s,aug_x);
+    s_y.set_points(aug_s,aug_y);
+    s_dx.set_points(aug_s,aug_dx);
+    s_dy.set_points(aug_s,aug_dy);
 }
 
 Track::Track(const Track &track) {
