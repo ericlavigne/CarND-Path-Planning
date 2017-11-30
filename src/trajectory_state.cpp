@@ -14,10 +14,19 @@ TrajectoryState::TrajectoryState(int s, int d, int v, int t, int simulate_steps,
     } else if(p->tooClose(s,d,t)) {
         _penalty_so_far += (simulate_steps + horizon_steps) * 100;
     }
+    // Small lane-changing penalty so car only changes lanes when doing so will help.
     if(d%2 == 1) {
-        // Small lane-changing penalty so car only changes lanes when doing so will help.
         _penalty_so_far += 1;
     }
+    // Slight lane preference to make car more decisive.
+    // Preference order is: center (favorite), left, right.
+    if(d == 0) {
+        _penalty_so_far += 0.1;
+    }
+    if(d > 2 && d%2 == 0) {
+        _penalty_so_far += 0.1 * (d - 2);
+    }
+
     _valid = true;
 }
 
