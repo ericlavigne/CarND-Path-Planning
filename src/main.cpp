@@ -46,7 +46,7 @@ int main() {
     int lane = 1;
     double speed_limit_mph = 47; // mph
     double speed_limit = speed_limit_mph / 2.24;
-    double acceleration_limit = 10.0;
+    double acceleration_limit = 9.5;
     double jerk_limit = 10.0;
 
     h.onMessage([&track, &lane, &speed_limit, &acceleration_limit, &jerk_limit, &speed_limit_mph](

@@ -7,7 +7,7 @@ PIDController::PIDController(vector<double> carx, vector<double> cary,
                              vector<double> trajx, vector<double> trajy, vector<double> trajv,
                              double seconds_before_traj, double seconds_per_traj)
 {
-    double minv = 0.015 / 0.02; // Ensure at least 0.01 meters per tick to avoid rounding problems.
+    double minv = 0.0015 / 0.02; // Ensure at least 0.01 meters per tick to avoid rounding problems.
     double v = minv;
     for(int i = 0; i < 10 && i < carx.size(); i++) {
         _pathx.push_back(carx[i]);
@@ -41,7 +41,6 @@ PIDController::PIDController(vector<double> carx, vector<double> cary,
             break;
         }
     }
-    double path_s = 0.0;
     double s = 0.0, x = _pathx[0], y = _pathy[0];
     vector<double> spline_points_s;
     for(int i = 0; i < spline_points_x.size(); i++) {
