@@ -34,4 +34,4 @@ private:
     double convert_v_to_continuous(int v);
 };
 
-#endif //PATH_PLANNING_TRAJECTORY_PLANNER_H
+#endif

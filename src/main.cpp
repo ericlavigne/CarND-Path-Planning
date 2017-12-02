@@ -8,10 +8,9 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
-#include "spline.h"
 #include "track.h"
 #include "trajectory_planner.h"
-#include "pid_controller.h"
+#include "controller.h"
 
 using namespace std;
 
@@ -42,14 +41,12 @@ int main() {
     string map_file_ = "../data/highway_map.csv";
     Track track(map_file_);
 
-    // Start in lane 1 (0 is left, 1 is middle, 2 is right)
-    int lane = 1;
     double speed_limit_mph = 47; // mph
     double speed_limit = speed_limit_mph / 2.24;
     double acceleration_limit = 9.5;
     double jerk_limit = 10.0;
 
-    h.onMessage([&track, &lane, &speed_limit, &acceleration_limit, &jerk_limit, &speed_limit_mph](
+    h.onMessage([&track, &speed_limit, &acceleration_limit, &jerk_limit, &speed_limit_mph](
             uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
             uWS::OpCode opCode) {
 
@@ -84,9 +81,6 @@ int main() {
                     // Previous path data given to the Planner
                     vector<double> previous_path_x = j[1]["previous_path_x"];
                     vector<double> previous_path_y = j[1]["previous_path_y"];
-                    // Previous path's end s and d values
-                    double end_path_s = j[1]["end_path_s"];
-                    double end_path_d = j[1]["end_path_d"];
 
                     // Sensor Fusion Data, a list of all other cars on the same side of the road.
                     auto sensor_fusion = j[1]["sensor_fusion"];
@@ -101,13 +95,7 @@ int main() {
                         double sens_vy = sensor_fusion[i][4];
                         double sens_s = sensor_fusion[i][5];
                         double sens_d = sensor_fusion[i][6];
-                        //vector<double> sens_calc_sd = track.xy_to_sd(sens_x,sens_y);
-                        //cout << "x=" << sens_x << " y=" << sens_y << " s=" << sens_s << " d=" << sens_d
-                        //     << " :: calc s=" << sens_calc_sd[0] << " d=" << sens_calc_sd[1] << endl;
                         vector<double> sens_calc_sdv = track.xyv_to_sdv(sens_x,sens_y,sens_vx,sens_vy);
-                        //cout << "x=" << sens_x << " y=" << sens_y << " s=" << sens_s << " d=" << sens_d
-                        //     << " :: calc s=" << sens_calc_sdv[0] << " d=" << sens_calc_sdv[1]
-                        //     << " vs=" << sens_calc_sdv[2] << " vd=" << sens_calc_sdv[3] << endl;
                         cars_s.push_back(sens_calc_sdv[0]);
                         cars_d.push_back(sens_calc_sdv[1]);
                         cars_vs.push_back(sens_calc_sdv[2]);
@@ -140,12 +128,8 @@ int main() {
                         end_of_prev_vx = (end_of_prev_x - before_end_of_prev_x) / 0.02;
                         end_of_prev_vy = (end_of_prev_y - before_end_of_prev_y) / 0.02;
                     }
-                    //cout << "End of prev (" << previous_path_x.size() << ") x:" << end_of_prev_x
-                    //     << " y:" << end_of_prev_y << " vx:" << end_of_prev_vx << " vy:" << end_of_prev_vy << endl;
 
                     vector<double> end_of_prev_sdv = track.xyv_to_sdv(end_of_prev_x,end_of_prev_y,end_of_prev_vx,end_of_prev_vy);
-                    //cout << "End of prev s:" << end_of_prev_sdv[0] << " d:" << end_of_prev_sdv[1]
-                    //     << " vs:" << end_of_prev_sdv[2] << " vd:" << end_of_prev_sdv[3] << endl;
 
                     // Create and use trajectory planner
                     double lookahead_seconds = 10;
@@ -175,14 +159,15 @@ int main() {
                     }
 
                     double seconds_before_traj = previous_path_x.size() * 0.02;
+                    double seconds_per_traj = 1.0;
 
                     if(previous_path_x.size() < 1) {
                         previous_path_x = {car_x};
                         previous_path_y = {car_y};
                     }
-
-                    PIDController pid(previous_path_x, previous_path_y, next_x_vals, next_y_vals, next_speed_vals,
-                                      seconds_before_traj, 1.0);
+                    
+                    Controller pid(previous_path_x, previous_path_y, next_x_vals, next_y_vals, next_speed_vals,
+                                   seconds_before_traj, seconds_per_traj);
 
                     json msgJson;
                     msgJson["next_x"] = pid.pathX();
@@ -195,7 +180,6 @@ int main() {
                     double elapsedSeconds = double(endClock - startClock) / CLOCKS_PER_SEC;
                     //cout << "Callback seconds: " << elapsedSeconds << endl;
 
-                    //this_thread::sleep_for(chrono::milliseconds(1000));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
                 }
@@ -208,8 +192,7 @@ int main() {
     });
 
     // We don't need this since we're not using HTTP but if it's removed the
-    // program
-    // doesn't compile :-(
+    // program doesn't compile :-(
     h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data,
                        size_t, size_t) {
         const std::string s = "<h1>Hello world!</h1>";

@@ -2,11 +2,13 @@
 #include "trajectory_planner.h"
 
 TrajectoryPlanner::TrajectoryPlanner(double s, double d, double vs, double vd,
-                  vector<double> other_s, vector<double> other_d, vector<double> other_vs, vector<double> other_vd,
-                  double max_vs, double max_as, double lookahead_seconds)
-: _s(s), _d(d), _vs(vs), _vd(vd), _other_s(other_s), _other_d(other_d), _other_vs(other_vs), _other_vd(other_vd),
-  _max_vs(max_vs), _max_as(max_as), _lookahead_seconds(lookahead_seconds),
-  _discrete_max_v(max(1,(int) floor(max_vs+0.1)))
+                                     vector<double> other_s, vector<double> other_d,
+                                     vector<double> other_vs, vector<double> other_vd,
+                                     double max_vs, double max_as, double lookahead_seconds)
+
+        : _s(s), _d(d), _vs(vs), _vd(vd), _other_s(other_s), _other_d(other_d), _other_vs(other_vs), _other_vd(other_vd),
+          _max_vs(max_vs), _max_as(max_as), _lookahead_seconds(lookahead_seconds),
+          _discrete_max_v(max(1,(int) floor(max_vs+0.1)))
 {
     int discrete_max_a = max(1, (int) floor(max_as+0.1));
     int discrete_s = convert_s_to_discrete(s);
@@ -89,7 +91,6 @@ int TrajectoryPlanner::convert_d_to_discrete(double d, double vd) {
     int result = int(0.5 + (d + vd) * 2.0 / _lane_width - 1.0);
     result = max(0,result); // Can't be off-road to left
     result = min((_num_lanes-1)*2,result); // Can't be off-road to right
-    //cout << "d->discrete: " << d << "," << vd << " => " << result << endl;
     return result;
 }
 

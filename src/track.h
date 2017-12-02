@@ -40,4 +40,4 @@ private:
     double endpoint_distance;
 };
 
-#endif //PATH_PLANNING_TRACK_H
+#endif

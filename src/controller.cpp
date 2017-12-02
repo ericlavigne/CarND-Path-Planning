@@ -1,11 +1,11 @@
 #include <iostream>
 #include <cmath>
-#include "pid_controller.h"
+#include "controller.h"
 #include "spline.h"
 
-PIDController::PIDController(vector<double> carx, vector<double> cary,
-                             vector<double> trajx, vector<double> trajy, vector<double> trajv,
-                             double seconds_before_traj, double seconds_per_traj)
+Controller::Controller(vector<double> carx, vector<double> cary,
+                       vector<double> trajx, vector<double> trajy, vector<double> trajv,
+                       double seconds_before_traj, double seconds_per_traj)
 {
     double minv = 0.0015 / 0.02; // Ensure at least 0.01 meters per tick to avoid rounding problems.
     double v = minv;
@@ -73,22 +73,12 @@ PIDController::PIDController(vector<double> carx, vector<double> cary,
         _pathx.push_back(x);
         _pathy.push_back(y);
     }
-    /*
-    cout << "Trajectory:" << endl;
-    for(int i = 0; i < 3; i++) {
-        cout << "   " << trajx[i] << "    " << trajy[i] << endl;
-    }
-    cout << "Path:" << endl;
-    for(int i = 0; i < 50; i++) {
-        cout << "   " << _pathx[i] << "    " << _pathy[i] << endl;
-    }
-     */
 }
 
-vector<double> PIDController::pathX() {
+vector<double> Controller::pathX() {
     return _pathx;
 }
 
-vector<double> PIDController::pathY() {
+vector<double> Controller::pathY() {
     return _pathy;
 }

@@ -13,7 +13,7 @@ set(sources src/astar.h
         src/trajectory_state.cpp src/trajectory_state.h
         src/discrete_prediction.cpp src/discrete_prediction.h
         src/discrete_trajectory_planner.cpp src/discrete_trajectory_planner.h
-        src/pid_controller.cpp src/pid_controller.h
+        src/controller.cpp src/controller.h
         src/spline.h src/json.hpp)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
