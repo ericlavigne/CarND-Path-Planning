@@ -5,7 +5,13 @@ Self-Driving Car Engineer Nanodegree Program
 
 ---
 
-Path planning on a highway using A* algorithm for safely passing other cars.
+An A* algorithm in four dimensions controls a simulated car on a highway,
+safely passing other cars at 50 mph. I estimate the motion of other cars based on the
+assumption of constant speed within their current lane. Car state for the A* algorithm
+includes two spatial dimensions (along and across the highway), speed (along
+the highway), and time. The time dimension is necessary because the estimated positions
+of other cars change with time. Automated tests cover trajectory planning for a variety
+of traffic patterns.
 
 [![video of car on highway](https://github.com/ericlavigne/CarND-Path-Planning/raw/master/img/youtube-thumb.png)](https://youtu.be/ouSjnpnRL7w)
 
