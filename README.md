@@ -19,6 +19,8 @@ of traffic patterns.
 
 ### Beyond the Requirements
 
+I developed this project for Udacity’s Self-Driving Car nanodegree and substantially exceeded the project requirements in the following ways:
+
 * A* algorithm for path planning rather than heuristics
 * Clear separation of concerns: A* algorithm, trajectory planner, controller, prediction
 * Automated tests for the trajectory planner
